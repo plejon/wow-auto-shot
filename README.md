@@ -19,10 +19,27 @@ cd wow-auto-shot
 2. Create a virtual environment:
 ```cmd
 python -m venv venv
-venv\Scripts\activate
 ```
 
-3. Install dependencies:
+3. Activate the virtual environment:
+
+**Option A - Use Command Prompt (cmd.exe) instead of PowerShell:**
+```cmd
+venv\Scripts\activate.bat
+```
+
+**Option B - If using PowerShell/VSCode, first allow scripts (run once):**
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+Then activate:
+```powershell
+venv\Scripts\Activate.ps1
+```
+
+**VSCode tip:** You can also switch to Command Prompt: press `Ctrl+Shift+P` → "Terminal: Select Default Profile" → "Command Prompt"
+
+4. Install dependencies:
 ```cmd
 pip install -r requirements.txt
 ```
