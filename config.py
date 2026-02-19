@@ -19,6 +19,7 @@ class Config:
 
     # Keys
     move_key: str = 'w'
-    toggle_hotkey: str = 'f1'
+    hold_hotkey: str = 'f1'       # hold to enable
+    toggle_hotkey: str = 'f2'     # press to toggle
     quit_hotkey: str = 'f7'
     calibrate_hotkey: str = 'f8'

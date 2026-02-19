@@ -55,7 +55,8 @@ python main.py
 
 | Key | Action |
 |-----|--------|
-| F1 | Toggle on/off |
+| F1 (hold) | Hold to enable, release to disable |
+| F2 | Toggle on/off |
 | F7 | Quit |
 | F8 | Calibration mode |
 

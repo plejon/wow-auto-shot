@@ -141,7 +141,7 @@ def create_tray_icon(state: AppState) -> pystray.Icon:
         icon.stop()
 
     menu = pystray.Menu(
-        pystray.MenuItem("Toggle (F1)", on_toggle),
+        pystray.MenuItem("Toggle (F2)", on_toggle),
         pystray.MenuItem("Quit (F7)", on_quit),
     )
 
@@ -177,8 +177,20 @@ def update_icon(icon: pystray.Icon, state: AppState):
 # Hotkey listener
 # ============================================================
 def hotkey_listener(state: AppState, cfg: Config):
-    """Listen for global hotkeys using pydirectinput/keyboard fallback."""
+    """Listen for global hotkeys."""
     import keyboard  # pip install keyboard
+
+    def hold_enable():
+        with state.lock:
+            if not state.enabled:
+                state.enabled = True
+                print(f"\n[HOTKEY] AutoWalk ENABLED (holding {cfg.hold_hotkey.upper()})")
+
+    def hold_disable():
+        with state.lock:
+            if state.enabled:
+                state.enabled = False
+                print(f"\n[HOTKEY] AutoWalk DISABLED (released {cfg.hold_hotkey.upper()})")
 
     def toggle():
         with state.lock:
@@ -194,6 +206,11 @@ def hotkey_listener(state: AppState, cfg: Config):
         with state.lock:
             state.calibrating = not state.calibrating
 
+    # Hold F1 to enable, release to disable
+    keyboard.on_press_key(cfg.hold_hotkey, lambda _: hold_enable())
+    keyboard.on_release_key(cfg.hold_hotkey, lambda _: hold_disable())
+
+    # Toggle with F2
     keyboard.add_hotkey(cfg.toggle_hotkey, toggle)
     keyboard.add_hotkey(cfg.quit_hotkey, quit_app)
     keyboard.add_hotkey(cfg.calibrate_hotkey, toggle_calibrate)
@@ -218,11 +235,12 @@ def main():
     print(f"  Sample size    : {cfg.sample_size}x{cfg.sample_size}")
     print(f"  Poll rate      : {cfg.poll_rate*1000:.0f}ms (~{1/cfg.poll_rate:.0f}fps)")
     print(f"  Move key       : {cfg.move_key}")
+    print(f"  Hold to enable : {cfg.hold_hotkey}")
     print(f"  Toggle hotkey  : {cfg.toggle_hotkey}")
     print(f"  Calibrate      : {cfg.calibrate_hotkey}")
     print(f"  Quit hotkey    : {cfg.quit_hotkey}")
     print("=" * 50)
-    print("  Press F1 to start, F8 to calibrate, F7 to quit")
+    print("  Hold F1 or toggle F2 to enable, F8 calibrate, F7 quit")
     print("=" * 50)
 
     # Start hotkey listener
