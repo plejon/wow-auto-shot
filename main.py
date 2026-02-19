@@ -18,36 +18,11 @@ import mss.tools
 import pydirectinput
 import time
 import threading
-import sys
 from enum import Enum
-from dataclasses import dataclass, field
 from PIL import Image
 import pystray
 
-# ============================================================
-# CONFIG - Adjust these to match your setup
-# ============================================================
-@dataclass
-class Config:
-    # Screen coordinates of your WA square (top-left corner of sample area)
-    pixel_x: int = 960
-    pixel_y: int = 540
-    sample_size: int = 3          # NxN pixel sample for more reliable reads
-
-    # Color thresholds (0-255)
-    green_threshold: int = 150    # green channel must be above this
-    red_threshold: int = 150      # red channel must be above this
-    off_channel_max: int = 100    # other channel must be below this
-
-    # Timing
-    poll_rate: float = 0.016      # ~60fps polling
-    debounce_frames: int = 2      # require N consistent reads before changing state
-
-    # Keys
-    move_key: str = 'w'
-    toggle_hotkey: str = 'f6'
-    quit_hotkey: str = 'f7'
-    calibrate_hotkey: str = 'f8'
+from config import Config
 
 
 # ============================================================
@@ -166,7 +141,7 @@ def create_tray_icon(state: AppState) -> pystray.Icon:
         icon.stop()
 
     menu = pystray.Menu(
-        pystray.MenuItem("Toggle (F6)", on_toggle),
+        pystray.MenuItem("Toggle (F1)", on_toggle),
         pystray.MenuItem("Quit (F7)", on_quit),
     )
 
@@ -247,7 +222,7 @@ def main():
     print(f"  Calibrate      : {cfg.calibrate_hotkey}")
     print(f"  Quit hotkey    : {cfg.quit_hotkey}")
     print("=" * 50)
-    print("  Press F6 to start, F8 to calibrate, F7 to quit")
+    print("  Press F1 to start, F8 to calibrate, F7 to quit")
     print("=" * 50)
 
     # Start hotkey listener

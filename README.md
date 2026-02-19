@@ -55,13 +55,13 @@ python main.py
 
 | Key | Action |
 |-----|--------|
-| F6 | Toggle on/off |
+| F1 | Toggle on/off |
 | F7 | Quit |
 | F8 | Calibration mode |
 
 ### Configuration
 
-Edit the `Config` class in `main.py` to adjust:
+Edit `config.py` to adjust:
 
 - `pixel_x`, `pixel_y` - Screen coordinates of your WeakAura indicator
 - `green_threshold` - Green channel threshold (default: 150)
