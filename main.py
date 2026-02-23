@@ -43,7 +43,6 @@ class AppState:
         self.enabled = False
         self.running = True
         self.current_state = PixelState.UNKNOWN
-        self.is_casting = False
         self.calibrating = False
         self.debounce_count = 0
         self.pending_state = PixelState.UNKNOWN
@@ -276,7 +275,6 @@ def main():
             with state.lock:
                 is_enabled = state.enabled
             if not is_enabled:
-                state.is_casting = False
                 time.sleep(0.05)
                 continue
 
@@ -296,21 +294,14 @@ def main():
                 state.current_state = new_state
 
                 # Act on state change
-                if new_state == PixelState.GREEN and not state.is_casting:
+                if new_state == PixelState.GREEN:
                     # Idle and safe to cast -> press Steady Shot
                     pydirectinput.press(cfg.shot_key)
-                    state.is_casting = True
-                elif new_state == PixelState.YELLOW:
-                    # Currently casting, do nothing
-                    state.is_casting = True
                 elif new_state == PixelState.RED:
-                    # Auto Shot coming soon - done casting
-                    state.is_casting = False
+                    # Auto Shot coming soon - cast Arcane Shot if available
                     if arcane_state == PixelState.BLUE and mana_state == PixelState.GREEN:
                         pydirectinput.press(cfg.arcane_key)
                         print(f"[STATE] RED      -> CAST ARCANE")
-                elif new_state in (PixelState.BLACK, PixelState.UNKNOWN):
-                    state.is_casting = False
 
                 # Console output
                 if new_state != last_print_state:
