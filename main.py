@@ -42,7 +42,6 @@ class PixelState(Enum):
 class AppState:
     def __init__(self):
         self.enabled = False
-        self.multi_enabled = False
         self.running = True
         self.current_state = PixelState.UNKNOWN
         self.calibrating = False
@@ -224,21 +223,8 @@ def hotkey_listener(state: AppState, cfg: Config):
             state.calibrating = not state.calibrating
 
     # Hold F1 to enable, release to disable
-    def multi_enable():
-        with state.lock:
-            state.multi_enabled = True
-            print(f"\n[HOTKEY] Multi-Shot ENABLED (holding {cfg.multi_key})")
-
-    def multi_disable():
-        with state.lock:
-            state.multi_enabled = False
-            print(f"\n[HOTKEY] Multi-Shot DISABLED (released {cfg.multi_key})")
-
     keyboard.on_press_key(cfg.hold_hotkey, lambda _: hold_enable())
     keyboard.on_release_key(cfg.hold_hotkey, lambda _: hold_disable())
-
-    keyboard.on_press_key(cfg.multi_key, lambda _: multi_enable())
-    keyboard.on_release_key(cfg.multi_key, lambda _: multi_disable())
 
     keyboard.add_hotkey(cfg.quit_hotkey, quit_app)
     keyboard.add_hotkey(cfg.calibrate_hotkey, toggle_calibrate)
@@ -268,13 +254,11 @@ def main():
     print(f"  Poll rate        : {cfg.poll_rate*1000:.0f}ms (~{1/cfg.poll_rate:.0f}fps)")
     print(f"  Steady Shot key  : {cfg.shot_key}")
     print(f"  Arcane Shot key  : {cfg.arcane_key}")
-    print(f"  Multi-Shot key   : {cfg.multi_key} (hold to enable)")
     print(f"  Hold to enable   : {cfg.hold_hotkey}")
     print(f"  Calibrate        : {cfg.calibrate_hotkey}")
     print(f"  Quit hotkey      : {cfg.quit_hotkey}")
     print("=" * 50)
-    print("  Hold CAPS LOCK to enable, hold 4 for Multi-Shot")
-    print("  F8 calibrate, F7 quit")
+    print("  Hold CAPS LOCK to enable, F8 calibrate, F7 quit")
     print("=" * 50)
 
     # Start hotkey listener
@@ -288,6 +272,7 @@ def main():
 
     sct = mss.mss()
     last_print_state = None
+    last_press_time = 0
 
     try:
         while state.running:
@@ -318,46 +303,49 @@ def main():
                 state.pending_state = new_state
                 state.debounce_count = 1
 
-            if state.debounce_count >= cfg.debounce_frames and new_state != state.current_state:
-                state.current_state = new_state
+            if state.debounce_count >= cfg.debounce_frames:
+                # Console output + tray on state change
+                if new_state != state.current_state:
+                    state.current_state = new_state
+                    last_press_time = 0  # press immediately on state change
 
-                # Act on state change
-                if new_state == PixelState.BLACK:
-                    # Auto Shot not active -> start it
-                    pydirectinput.press('1')
-                elif new_state == PixelState.GREEN:
-                    # Idle and safe to cast -> press Steady Shot
-                    pydirectinput.press(cfg.shot_key)
-                elif new_state == PixelState.RED:
-                    # Auto Shot coming soon - cast instant if available and not casting Steady
-                    if steady_state != PixelState.YELLOW and mana_state == PixelState.GREEN:
-                        if state.multi_enabled and multi_state == PixelState.PINK:
-                            # Multi-Shot off cooldown (higher priority, hold 4 to enable)
-                            pydirectinput.press(cfg.multi_key)
-                            print(f"[STATE] RED      -> CAST MULTI")
-                        elif arcane_state == PixelState.BLUE:
-                            # Arcane Shot off cooldown
-                            pydirectinput.press(cfg.arcane_key)
-                            print(f"[STATE] RED      -> CAST ARCANE")
+                    if new_state != last_print_state:
+                        if new_state == PixelState.BLACK:
+                            action = "START AUTO"
+                        elif new_state == PixelState.GREEN:
+                            action = "CAST STEADY"
+                        elif new_state == PixelState.YELLOW:
+                            action = "CASTING"
+                        elif new_state == PixelState.RED:
+                            action = "WAITING"
+                        else:
+                            action = "IDLE"
+                        print(f"[STATE] {new_state.value:8s} -> {action}")
+                        last_print_state = new_state
 
-                # Console output
-                if new_state != last_print_state:
-                    if new_state == PixelState.GREEN:
-                        action = "CAST STEADY"
-                    elif new_state == PixelState.YELLOW:
-                        action = "CASTING"
+                    try:
+                        update_icon(tray, state)
+                    except Exception:
+                        pass
+
+                # Press buttons — retry every 0.5s while state persists
+                now = time.time()
+                if now - last_press_time >= 0.5:
+                    pressed = False
+                    if new_state == PixelState.BLACK:
+                        pydirectinput.press('1')
+                        pressed = True
+                    elif new_state == PixelState.GREEN:
+                        pydirectinput.press(cfg.shot_key)
+                        pressed = True
                     elif new_state == PixelState.RED:
-                        action = "WAITING"
-                    else:
-                        action = "IDLE"
-                    print(f"[STATE] {new_state.value:8s} -> {action}")
-                    last_print_state = new_state
-
-                # Update tray
-                try:
-                    update_icon(tray, state)
-                except Exception:
-                    pass
+                        if steady_state != PixelState.YELLOW and mana_state == PixelState.GREEN:
+                            if arcane_state == PixelState.BLUE:
+                                pydirectinput.press(cfg.arcane_key)
+                                print(f"[STATE] RED      -> CAST ARCANE")
+                                pressed = True
+                    if pressed:
+                        last_press_time = now
 
             time.sleep(cfg.poll_rate)
 
