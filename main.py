@@ -1,16 +1,17 @@
 """
-WoW Auto-Walk: Reads WeakAura color state and holds/releases W.
-Green pixel = hold W (safe to move)
-Red pixel = release W (stand still, let Auto Shot fire)
+WoW Auto-Shot: Reads WeakAura color state and presses Steady Shot.
+Green pixel  = idle, safe to cast Steady Shot -> press key
+Yellow pixel = currently casting Steady Shot -> do nothing
+Red pixel    = Auto Shot coming soon -> don't cast
 
 Requirements:
-    pip install mss pydirectinput pystray Pillow
+    pip install mss pydirectinput pystray Pillow keyboard
 
 Usage:
-    1. Position your WA green/red square somewhere consistent on screen
+    1. Position your WA green/yellow/red square on screen
     2. Run this script
-    3. Use calibration mode (F8 key) to find the right pixel coordinates
-    4. Press F6 to toggle on/off, F7 to quit
+    3. Use calibration mode (F8 key) to verify pixel coordinates
+    4. Hold 1 to enable, F7 to quit
 """
 
 import mss
@@ -29,9 +30,10 @@ from config import Config
 # State
 # ============================================================
 class PixelState(Enum):
-    GREEN = "GREEN"   # safe to move
-    RED = "RED"       # stop moving
-    BLACK = "BLACK"   # inactive / unknown
+    GREEN = "GREEN"     # idle, safe to cast Steady Shot
+    YELLOW = "YELLOW"   # currently casting
+    RED = "RED"         # Auto Shot coming, don't cast
+    BLACK = "BLACK"     # inactive / unknown
     UNKNOWN = "UNKNOWN"
 
 
@@ -40,7 +42,7 @@ class AppState:
         self.enabled = False
         self.running = True
         self.current_state = PixelState.UNKNOWN
-        self.is_moving = False
+        self.is_casting = False
         self.calibrating = False
         self.debounce_count = 0
         self.pending_state = PixelState.UNKNOWN
@@ -52,14 +54,16 @@ class AppState:
 # ============================================================
 def classify_pixel(r: int, g: int, b: int, cfg: Config) -> PixelState:
     """Classify an RGB pixel into a WA state."""
+    # Yellow: both R and G high, B low (check before green/red since it overlaps)
+    if r > cfg.yellow_r_threshold and g > cfg.yellow_g_threshold and b < cfg.off_channel_max:
+        return PixelState.YELLOW
     if g > cfg.green_threshold and r < cfg.off_channel_max:
         return PixelState.GREEN
-    elif r > cfg.red_threshold and g < cfg.off_channel_max:
+    if r > cfg.red_threshold and g < cfg.off_channel_max:
         return PixelState.RED
-    elif r < 50 and g < 50 and b < 50:
+    if r < 50 and g < 50 and b < 50:
         return PixelState.BLACK
-    else:
-        return PixelState.UNKNOWN
+    return PixelState.UNKNOWN
 
 
 def read_pixel_state(sct: mss.mss, cfg: Config) -> PixelState:
@@ -131,24 +135,18 @@ def create_tray_icon(state: AppState) -> pystray.Icon:
         img = Image.new("RGB", (64, 64), color)
         return img
 
-    def on_toggle(icon, item):
-        with state.lock:
-            state.enabled = not state.enabled
-        update_icon(icon, state)
-
     def on_quit(icon, item):
         state.running = False
         icon.stop()
 
     menu = pystray.Menu(
-        pystray.MenuItem("Toggle (F2)", on_toggle),
         pystray.MenuItem("Quit (F7)", on_quit),
     )
 
     icon = pystray.Icon(
-        "wow-autowalk",
+        "wow-autoshot",
         make_image("gray"),
-        "WoW AutoWalk: OFF",
+        "WoW AutoShot: OFF",
         menu,
     )
     return icon
@@ -158,16 +156,19 @@ def update_icon(icon: pystray.Icon, state: AppState):
     """Update tray icon color based on state."""
     if not state.enabled:
         color = "gray"
-        tip = "WoW AutoWalk: OFF"
+        tip = "AutoShot: OFF"
     elif state.current_state == PixelState.GREEN:
         color = "green"
-        tip = "AutoWalk: MOVING"
+        tip = "AutoShot: IDLE"
+    elif state.current_state == PixelState.YELLOW:
+        color = "yellow"
+        tip = "AutoShot: CASTING"
     elif state.current_state == PixelState.RED:
         color = "red"
-        tip = "AutoWalk: STOPPED"
+        tip = "AutoShot: WAITING"
     else:
-        color = "yellow"
-        tip = "AutoWalk: UNKNOWN"
+        color = "gray"
+        tip = "AutoShot: UNKNOWN"
 
     icon.icon = Image.new("RGB", (64, 64), color)
     icon.title = tip
@@ -184,19 +185,13 @@ def hotkey_listener(state: AppState, cfg: Config):
         with state.lock:
             if not state.enabled:
                 state.enabled = True
-                print(f"\n[HOTKEY] AutoWalk ENABLED (holding {cfg.hold_hotkey.upper()})")
+                print(f"\n[HOTKEY] AutoShot ENABLED (holding {cfg.hold_hotkey.upper()})")
 
     def hold_disable():
         with state.lock:
             if state.enabled:
                 state.enabled = False
-                print(f"\n[HOTKEY] AutoWalk DISABLED (released {cfg.hold_hotkey.upper()})")
-
-    def toggle():
-        with state.lock:
-            state.enabled = not state.enabled
-        status = "ENABLED" if state.enabled else "DISABLED"
-        print(f"\n[HOTKEY] AutoWalk {status}")
+                print(f"\n[HOTKEY] AutoShot DISABLED (released {cfg.hold_hotkey.upper()})")
 
     def quit_app():
         print("\n[HOTKEY] Quitting...")
@@ -210,8 +205,6 @@ def hotkey_listener(state: AppState, cfg: Config):
     keyboard.on_press_key(cfg.hold_hotkey, lambda _: hold_enable())
     keyboard.on_release_key(cfg.hold_hotkey, lambda _: hold_disable())
 
-    # Toggle with F2
-    keyboard.add_hotkey(cfg.toggle_hotkey, toggle)
     keyboard.add_hotkey(cfg.quit_hotkey, quit_app)
     keyboard.add_hotkey(cfg.calibrate_hotkey, toggle_calibrate)
 
@@ -229,18 +222,17 @@ def main():
     pydirectinput.PAUSE = 0  # no delay between inputs
 
     print("=" * 50)
-    print("  WoW Auto-Walk (Pixel Reader)")
+    print("  WoW Auto-Shot (Steady Shot Weaver)")
     print("=" * 50)
     print(f"  Pixel position : ({cfg.pixel_x}, {cfg.pixel_y})")
     print(f"  Sample size    : {cfg.sample_size}x{cfg.sample_size}")
     print(f"  Poll rate      : {cfg.poll_rate*1000:.0f}ms (~{1/cfg.poll_rate:.0f}fps)")
-    print(f"  Move key       : {cfg.move_key}")
+    print(f"  Shot key       : {cfg.shot_key}")
     print(f"  Hold to enable : {cfg.hold_hotkey}")
-    print(f"  Toggle hotkey  : {cfg.toggle_hotkey}")
     print(f"  Calibrate      : {cfg.calibrate_hotkey}")
     print(f"  Quit hotkey    : {cfg.quit_hotkey}")
     print("=" * 50)
-    print("  Hold F1 or toggle F2 to enable, F8 calibrate, F7 quit")
+    print("  Hold 1 to enable, F8 calibrate, F7 quit")
     print("=" * 50)
 
     # Start hotkey listener
@@ -267,11 +259,7 @@ def main():
             with state.lock:
                 is_enabled = state.enabled
             if not is_enabled:
-                # Make sure we release the key when disabled
-                if state.is_moving:
-                    pydirectinput.keyUp(cfg.move_key)
-                    state.is_moving = False
-                    print("[STATE] Disabled -> released key")
+                state.is_casting = False
                 time.sleep(0.05)
                 continue
 
@@ -289,17 +277,26 @@ def main():
                 state.current_state = new_state
 
                 # Act on state change
-                if new_state == PixelState.GREEN and not state.is_moving:
-                    pydirectinput.keyDown(cfg.move_key)
-                    state.is_moving = True
-                elif new_state in (PixelState.RED, PixelState.BLACK, PixelState.UNKNOWN) and state.is_moving:
-                    pydirectinput.keyUp(cfg.move_key)
-                    state.is_moving = False
+                if new_state == PixelState.GREEN and not state.is_casting:
+                    # Idle and safe to cast -> press Steady Shot
+                    pydirectinput.press(cfg.shot_key)
+                    state.is_casting = True
+                elif new_state == PixelState.YELLOW:
+                    # Currently casting, do nothing
+                    state.is_casting = True
+                elif new_state in (PixelState.RED, PixelState.BLACK, PixelState.UNKNOWN):
+                    # Auto Shot window or unknown, don't cast
+                    state.is_casting = False
 
                 # Console output
                 if new_state != last_print_state:
-                    moving = "WALKING" if state.is_moving else "STOPPED"
-                    print(f"[STATE] {new_state.value:8s} -> {moving}")
+                    if new_state == PixelState.GREEN:
+                        action = "CAST STEADY"
+                    elif new_state == PixelState.YELLOW:
+                        action = "CASTING"
+                    else:
+                        action = "WAITING"
+                    print(f"[STATE] {new_state.value:8s} -> {action}")
                     last_print_state = new_state
 
                 # Update tray
@@ -313,9 +310,6 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        # Clean up: release key
-        if state.is_moving:
-            pydirectinput.keyUp(cfg.move_key)
         print("\nCleaned up. Bye!")
         try:
             tray.stop()
