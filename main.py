@@ -315,7 +315,7 @@ def main():
                         elif new_state == PixelState.GREEN:
                             action = "CAST STEADY"
                         elif new_state == PixelState.YELLOW:
-                            action = "CASTING"
+                            action = "WEAVE INSTANT"
                         elif new_state == PixelState.RED:
                             action = "WAITING"
                         else:
@@ -338,11 +338,11 @@ def main():
                     elif new_state == PixelState.GREEN:
                         pydirectinput.press(cfg.shot_key)
                         pressed = True
-                    elif new_state == PixelState.RED:
+                    elif new_state == PixelState.YELLOW:
                         if steady_state != PixelState.YELLOW and mana_state == PixelState.GREEN:
                             if arcane_state == PixelState.BLUE:
                                 pydirectinput.press(cfg.arcane_key)
-                                print(f"[STATE] RED      -> CAST ARCANE")
+                                print(f"[STATE] YELLOW   -> CAST ARCANE")
                                 pressed = True
                     if pressed:
                         last_press_time = now
