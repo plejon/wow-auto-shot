@@ -227,10 +227,12 @@ def hotkey_listener(state: AppState, cfg: Config):
     def multi_enable():
         with state.lock:
             state.multi_enabled = True
+            print(f"\n[HOTKEY] Multi-Shot ENABLED (holding {cfg.multi_key})")
 
     def multi_disable():
         with state.lock:
             state.multi_enabled = False
+            print(f"\n[HOTKEY] Multi-Shot DISABLED (released {cfg.multi_key})")
 
     keyboard.on_press_key(cfg.hold_hotkey, lambda _: hold_enable())
     keyboard.on_release_key(cfg.hold_hotkey, lambda _: hold_disable())
