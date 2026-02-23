@@ -32,7 +32,8 @@ from config import Config
 class PixelState(Enum):
     GREEN = "GREEN"     # idle, safe to cast Steady Shot
     YELLOW = "YELLOW"   # currently casting
-    RED = "RED"         # Auto Shot coming, don't cast
+    RED = "RED"         # Auto Shot coming / on cooldown
+    BLUE = "BLUE"       # Arcane Shot off cooldown
     BLACK = "BLACK"     # inactive / unknown
     UNKNOWN = "UNKNOWN"
 
@@ -57,20 +58,22 @@ def classify_pixel(r: int, g: int, b: int, cfg: Config) -> PixelState:
     # Yellow: both R and G high, B low (check before green/red since it overlaps)
     if r > cfg.yellow_r_threshold and g > cfg.yellow_g_threshold and b < cfg.off_channel_max:
         return PixelState.YELLOW
-    if g > cfg.green_threshold and r < cfg.off_channel_max:
+    if g > cfg.green_threshold and r < cfg.off_channel_max and b < cfg.off_channel_max:
         return PixelState.GREEN
-    if r > cfg.red_threshold and g < cfg.off_channel_max:
+    if b > cfg.blue_threshold and r < cfg.off_channel_max and g < cfg.off_channel_max:
+        return PixelState.BLUE
+    if r > cfg.red_threshold and g < cfg.off_channel_max and b < cfg.off_channel_max:
         return PixelState.RED
     if r < 50 and g < 50 and b < 50:
         return PixelState.BLACK
     return PixelState.UNKNOWN
 
 
-def read_pixel_state(sct: mss.mss, cfg: Config) -> PixelState:
+def read_pixel_state(sct: mss.mss, px_x: int, px_y: int, cfg: Config) -> PixelState:
     """Sample an NxN area and return the dominant state."""
     region = {
-        "top": cfg.pixel_y,
-        "left": cfg.pixel_x,
+        "top": px_y,
+        "left": px_x,
         "width": cfg.sample_size,
         "height": cfg.sample_size,
     }
@@ -97,11 +100,25 @@ def read_pixel_state(sct: mss.mss, cfg: Config) -> PixelState:
 # ============================================================
 # Calibration mode
 # ============================================================
+def read_pixel_rgb(sct: mss.mss, px_x: int, px_y: int, cfg: Config):
+    """Read the center pixel RGB from an NxN sample area."""
+    region = {
+        "top": px_y,
+        "left": px_x,
+        "width": cfg.sample_size,
+        "height": cfg.sample_size,
+    }
+    img = sct.grab(region)
+    px = img.pixel(cfg.sample_size // 2, cfg.sample_size // 2)
+    return px[2], px[1], px[0]  # R, G, B
+
+
 def calibrate(sct: mss.mss, cfg: Config, app_state: AppState):
-    """Live-print the pixel color at the configured position."""
+    """Live-print the pixel color at the configured positions."""
     print("\n=== CALIBRATION MODE ===")
-    print(f"Reading pixel at ({cfg.pixel_x}, {cfg.pixel_y})")
-    print("Move your WA square under this position.")
+    print(f"Auto Shot pixel  : ({cfg.pixel_x}, {cfg.pixel_y})")
+    print(f"Arcane Shot pixel: ({cfg.arcane_pixel_x}, {cfg.arcane_pixel_y})")
+    print(f"Mana pixel       : ({cfg.mana_pixel_x}, {cfg.mana_pixel_y})")
     print("Press F8 again to exit calibration.\n")
 
     while True:
@@ -110,18 +127,13 @@ def calibrate(sct: mss.mss, cfg: Config, app_state: AppState):
                 print("\n=== EXITED CALIBRATION ===")
                 break
 
-        region = {
-            "top": cfg.pixel_y,
-            "left": cfg.pixel_x,
-            "width": cfg.sample_size,
-            "height": cfg.sample_size,
-        }
-        img = sct.grab(region)
-        # mss returns BGRA: px[0]=B, px[1]=G, px[2]=R
-        px = img.pixel(cfg.sample_size // 2, cfg.sample_size // 2)
-        r, g, b = px[2], px[1], px[0]
-        pixel_state = classify_pixel(r, g, b, cfg)
-        print(f"\r  RGB: ({r:3d}, {g:3d}, {b:3d})  =>  {pixel_state.value:8s}", end="", flush=True)
+        r1, g1, b1 = read_pixel_rgb(sct, cfg.pixel_x, cfg.pixel_y, cfg)
+        s1 = classify_pixel(r1, g1, b1, cfg)
+        r2, g2, b2 = read_pixel_rgb(sct, cfg.arcane_pixel_x, cfg.arcane_pixel_y, cfg)
+        s2 = classify_pixel(r2, g2, b2, cfg)
+        r3, g3, b3 = read_pixel_rgb(sct, cfg.mana_pixel_x, cfg.mana_pixel_y, cfg)
+        s3 = classify_pixel(r3, g3, b3, cfg)
+        print(f"\r  Auto({r1:3d},{g1:3d},{b1:3d})={s1.value:8s}  Arcane({r2:3d},{g2:3d},{b2:3d})={s2.value:8s}  Mana({r3:3d},{g3:3d},{b3:3d})={s3.value:8s}", end="", flush=True)
         time.sleep(0.1)
 
 
@@ -222,15 +234,18 @@ def main():
     pydirectinput.PAUSE = 0  # no delay between inputs
 
     print("=" * 50)
-    print("  WoW Auto-Shot (Steady Shot Weaver)")
+    print("  WoW Auto-Shot (Rotation Weaver)")
     print("=" * 50)
-    print(f"  Pixel position : ({cfg.pixel_x}, {cfg.pixel_y})")
-    print(f"  Sample size    : {cfg.sample_size}x{cfg.sample_size}")
-    print(f"  Poll rate      : {cfg.poll_rate*1000:.0f}ms (~{1/cfg.poll_rate:.0f}fps)")
-    print(f"  Shot key       : {cfg.shot_key}")
-    print(f"  Hold to enable : {cfg.hold_hotkey}")
-    print(f"  Calibrate      : {cfg.calibrate_hotkey}")
-    print(f"  Quit hotkey    : {cfg.quit_hotkey}")
+    print(f"  Auto Shot pixel  : ({cfg.pixel_x}, {cfg.pixel_y})")
+    print(f"  Arcane Shot pixel: ({cfg.arcane_pixel_x}, {cfg.arcane_pixel_y})")
+    print(f"  Mana pixel       : ({cfg.mana_pixel_x}, {cfg.mana_pixel_y})")
+    print(f"  Sample size      : {cfg.sample_size}x{cfg.sample_size}")
+    print(f"  Poll rate        : {cfg.poll_rate*1000:.0f}ms (~{1/cfg.poll_rate:.0f}fps)")
+    print(f"  Steady Shot key  : {cfg.shot_key}")
+    print(f"  Arcane Shot key  : {cfg.arcane_key}")
+    print(f"  Hold to enable   : {cfg.hold_hotkey}")
+    print(f"  Calibrate        : {cfg.calibrate_hotkey}")
+    print(f"  Quit hotkey      : {cfg.quit_hotkey}")
     print("=" * 50)
     print("  Hold CAPS LOCK to enable, F8 calibrate, F7 quit")
     print("=" * 50)
@@ -263,8 +278,10 @@ def main():
                 time.sleep(0.05)
                 continue
 
-            # Read pixel
-            new_state = read_pixel_state(sct, cfg)
+            # Read pixels
+            new_state = read_pixel_state(sct, cfg.pixel_x, cfg.pixel_y, cfg)
+            arcane_state = read_pixel_state(sct, cfg.arcane_pixel_x, cfg.arcane_pixel_y, cfg)
+            mana_state = read_pixel_state(sct, cfg.mana_pixel_x, cfg.mana_pixel_y, cfg)
 
             # Debounce: require N consistent reads
             if new_state == state.pending_state:
@@ -284,8 +301,12 @@ def main():
                 elif new_state == PixelState.YELLOW:
                     # Currently casting, do nothing
                     state.is_casting = True
-                elif new_state in (PixelState.RED, PixelState.BLACK, PixelState.UNKNOWN):
-                    # Auto Shot window or unknown, don't cast
+                elif new_state == PixelState.RED and not state.is_casting:
+                    # Auto Shot coming soon - cast Arcane Shot if off cooldown
+                    if arcane_state == PixelState.BLUE and mana_state == PixelState.GREEN:
+                        pydirectinput.press(cfg.arcane_key)
+                        print(f"[STATE] RED      -> CAST ARCANE")
+                elif new_state in (PixelState.BLACK, PixelState.UNKNOWN):
                     state.is_casting = False
 
                 # Console output
@@ -294,8 +315,10 @@ def main():
                         action = "CAST STEADY"
                     elif new_state == PixelState.YELLOW:
                         action = "CASTING"
-                    else:
+                    elif new_state == PixelState.RED:
                         action = "WAITING"
+                    else:
+                        action = "IDLE"
                     print(f"[STATE] {new_state.value:8s} -> {action}")
                     last_print_state = new_state
 

@@ -3,9 +3,13 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
-    # Screen coordinates of your WA square (top-left corner of sample area)
-    pixel_x: int = 15
+    # Screen coordinates of WA squares (top-left corner of sample area)
+    pixel_x: int = 15             # Auto Shot indicator
     pixel_y: int = 15
+    arcane_pixel_x: int = 85      # Arcane Shot indicator
+    arcane_pixel_y: int = 15
+    mana_pixel_x: int = 150       # Mana indicator (green >= 40%, red < 40%)
+    mana_pixel_y: int = 15
     sample_size: int = 3          # NxN pixel sample for more reliable reads
 
     # Color thresholds (0-255)
@@ -13,6 +17,7 @@ class Config:
     red_threshold: int = 150      # red channel must be above this
     yellow_r_threshold: int = 150 # yellow: R above this
     yellow_g_threshold: int = 150 # yellow: G above this
+    blue_threshold: int = 150     # blue channel must be above this
     off_channel_max: int = 100    # other channel must be below this
 
     # Timing
@@ -21,6 +26,7 @@ class Config:
 
     # Keys
     shot_key: str = '2'           # Steady Shot keybind
+    arcane_key: str = '3'         # Arcane Shot keybind
     hold_hotkey: str = 'caps lock' # hold to enable
     quit_hotkey: str = 'f7'
     calibrate_hotkey: str = 'f8'
