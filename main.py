@@ -339,7 +339,6 @@ def main():
                         pydirectinput.press(cfg.shot_key)
                         pressed = True
                     elif new_state == PixelState.RED:
-                        print(f"[DEBUG] RED: steady={steady_state.value} arcane={arcane_state.value} mana={mana_state.value}")
                         if steady_state != PixelState.YELLOW and mana_state == PixelState.GREEN:
                             if arcane_state == PixelState.BLUE:
                                 pydirectinput.press(cfg.arcane_key)

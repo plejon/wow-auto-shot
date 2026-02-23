@@ -3,17 +3,17 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
-    # Screen coordinates of WA squares (top-left corner of sample area)
-    pixel_x: int = 15             # Auto Shot indicator
-    pixel_y: int = 15
-    steady_pixel_x: int = 30      # Steady Shot indicator
-    steady_pixel_y: int = 15
-    arcane_pixel_x: int = 45      # Arcane Shot indicator
-    arcane_pixel_y: int = 15
-    multi_pixel_x: int = 60       # Multi-Shot indicator
-    multi_pixel_y: int = 15
-    mana_pixel_x: int = 75        # Mana indicator (green >= 40%, red < 40%)
-    mana_pixel_y: int = 15
+    # Screen coordinates of WA squares (center of each 15x15 square)
+    pixel_x: int = 6              # Auto Shot indicator
+    pixel_y: int = 6
+    steady_pixel_x: int = 21      # Steady Shot indicator
+    steady_pixel_y: int = 6
+    arcane_pixel_x: int = 36      # Arcane Shot indicator
+    arcane_pixel_y: int = 6
+    multi_pixel_x: int = 51       # Multi-Shot indicator
+    multi_pixel_y: int = 6
+    mana_pixel_x: int = 66        # Mana indicator (green >= 40%, red < 40%)
+    mana_pixel_y: int = 6
     sample_size: int = 3          # NxN pixel sample for more reliable reads
 
     # Color thresholds (0-255)
