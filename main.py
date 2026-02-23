@@ -197,6 +197,8 @@ def hotkey_listener(state: AppState, cfg: Config):
         with state.lock:
             if not state.enabled:
                 state.enabled = True
+                # Press 1 to start Auto Shot
+                pydirectinput.press('1')
                 print(f"\n[HOTKEY] AutoShot ENABLED (holding {cfg.hold_hotkey.upper()})")
 
     def hold_disable():
