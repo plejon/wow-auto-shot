@@ -97,7 +97,10 @@ def read_pixel_state(sct: mss.mss, px_x: int, px_y: int, cfg: Config) -> PixelSt
     avg_g = total_g // count
     avg_b = total_b // count
 
-    return classify_pixel(avg_r, avg_g, avg_b, cfg)
+    state = classify_pixel(avg_r, avg_g, avg_b, cfg)
+    if state in (PixelState.UNKNOWN, PixelState.BLUE):
+        print(f"[DEBUG] pos=({px_x},{px_y}) RGB=({avg_r},{avg_g},{avg_b}) -> {state.value}")
+    return state
 
 
 # ============================================================
