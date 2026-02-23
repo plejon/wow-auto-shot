@@ -266,12 +266,13 @@ def main():
     print(f"  Poll rate        : {cfg.poll_rate*1000:.0f}ms (~{1/cfg.poll_rate:.0f}fps)")
     print(f"  Steady Shot key  : {cfg.shot_key}")
     print(f"  Arcane Shot key  : {cfg.arcane_key}")
-    print(f"  Multi-Shot key   : {cfg.multi_key}")
+    print(f"  Multi-Shot key   : {cfg.multi_key} (hold to enable)")
     print(f"  Hold to enable   : {cfg.hold_hotkey}")
     print(f"  Calibrate        : {cfg.calibrate_hotkey}")
     print(f"  Quit hotkey      : {cfg.quit_hotkey}")
     print("=" * 50)
-    print("  Hold CAPS LOCK to enable, F8 calibrate, F7 quit")
+    print("  Hold CAPS LOCK to enable, hold 4 for Multi-Shot")
+    print("  F8 calibrate, F7 quit")
     print("=" * 50)
 
     # Start hotkey listener
