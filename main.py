@@ -303,8 +303,9 @@ def main():
                 elif new_state == PixelState.YELLOW:
                     # Currently casting, do nothing
                     state.is_casting = True
-                elif new_state == PixelState.RED and not state.is_casting:
-                    # Auto Shot coming soon - cast Arcane Shot if off cooldown
+                elif new_state == PixelState.RED:
+                    # Auto Shot coming soon - done casting
+                    state.is_casting = False
                     if arcane_state == PixelState.BLUE and mana_state == PixelState.GREEN:
                         pydirectinput.press(cfg.arcane_key)
                         print(f"[STATE] RED      -> CAST ARCANE")
