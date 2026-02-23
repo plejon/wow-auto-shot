@@ -34,6 +34,7 @@ class PixelState(Enum):
     YELLOW = "YELLOW"   # currently casting
     RED = "RED"         # Auto Shot coming / on cooldown
     BLUE = "BLUE"       # Arcane Shot off cooldown
+    PINK = "PINK"       # Multi-Shot off cooldown
     BLACK = "BLACK"     # inactive / unknown
     UNKNOWN = "UNKNOWN"
 
@@ -41,6 +42,7 @@ class PixelState(Enum):
 class AppState:
     def __init__(self):
         self.enabled = False
+        self.multi_enabled = False
         self.running = True
         self.current_state = PixelState.UNKNOWN
         self.calibrating = False
@@ -59,6 +61,9 @@ def classify_pixel(r: int, g: int, b: int, cfg: Config) -> PixelState:
         return PixelState.YELLOW
     if g > cfg.green_threshold and r < cfg.off_channel_max and b < cfg.off_channel_max:
         return PixelState.GREEN
+    # Pink: high R and high B, low G (check before blue/red since it overlaps)
+    if r > cfg.pink_r_threshold and b > cfg.pink_b_threshold and g < cfg.off_channel_max:
+        return PixelState.PINK
     if b > cfg.blue_threshold and r < cfg.off_channel_max and g < cfg.off_channel_max:
         return PixelState.BLUE
     if r > cfg.red_threshold and g < cfg.off_channel_max and b < cfg.off_channel_max:
@@ -116,7 +121,9 @@ def calibrate(sct: mss.mss, cfg: Config, app_state: AppState):
     """Live-print the pixel color at the configured positions."""
     print("\n=== CALIBRATION MODE ===")
     print(f"Auto Shot pixel  : ({cfg.pixel_x}, {cfg.pixel_y})")
+    print(f"Steady Shot pixel: ({cfg.steady_pixel_x}, {cfg.steady_pixel_y})")
     print(f"Arcane Shot pixel: ({cfg.arcane_pixel_x}, {cfg.arcane_pixel_y})")
+    print(f"Multi-Shot pixel : ({cfg.multi_pixel_x}, {cfg.multi_pixel_y})")
     print(f"Mana pixel       : ({cfg.mana_pixel_x}, {cfg.mana_pixel_y})")
     print("Press F8 again to exit calibration.\n")
 
@@ -128,11 +135,15 @@ def calibrate(sct: mss.mss, cfg: Config, app_state: AppState):
 
         r1, g1, b1 = read_pixel_rgb(sct, cfg.pixel_x, cfg.pixel_y, cfg)
         s1 = classify_pixel(r1, g1, b1, cfg)
-        r2, g2, b2 = read_pixel_rgb(sct, cfg.arcane_pixel_x, cfg.arcane_pixel_y, cfg)
+        r2, g2, b2 = read_pixel_rgb(sct, cfg.steady_pixel_x, cfg.steady_pixel_y, cfg)
         s2 = classify_pixel(r2, g2, b2, cfg)
-        r3, g3, b3 = read_pixel_rgb(sct, cfg.mana_pixel_x, cfg.mana_pixel_y, cfg)
+        r3, g3, b3 = read_pixel_rgb(sct, cfg.arcane_pixel_x, cfg.arcane_pixel_y, cfg)
         s3 = classify_pixel(r3, g3, b3, cfg)
-        print(f"\r  Auto({r1:3d},{g1:3d},{b1:3d})={s1.value:8s}  Arcane({r2:3d},{g2:3d},{b2:3d})={s2.value:8s}  Mana({r3:3d},{g3:3d},{b3:3d})={s3.value:8s}", end="", flush=True)
+        r4, g4, b4 = read_pixel_rgb(sct, cfg.multi_pixel_x, cfg.multi_pixel_y, cfg)
+        s4 = classify_pixel(r4, g4, b4, cfg)
+        r5, g5, b5 = read_pixel_rgb(sct, cfg.mana_pixel_x, cfg.mana_pixel_y, cfg)
+        s5 = classify_pixel(r5, g5, b5, cfg)
+        print(f"\r  Auto={s1.value:7s} Steady={s2.value:7s} Arcane={s3.value:7s} Multi={s4.value:7s} Mana={s5.value:7s}", end="", flush=True)
         time.sleep(0.1)
 
 
@@ -196,8 +207,6 @@ def hotkey_listener(state: AppState, cfg: Config):
         with state.lock:
             if not state.enabled:
                 state.enabled = True
-                # Press 1 to start Auto Shot
-                pydirectinput.press('1')
                 print(f"\n[HOTKEY] AutoShot ENABLED (holding {cfg.hold_hotkey.upper()})")
 
     def hold_disable():
@@ -215,8 +224,19 @@ def hotkey_listener(state: AppState, cfg: Config):
             state.calibrating = not state.calibrating
 
     # Hold F1 to enable, release to disable
+    def multi_enable():
+        with state.lock:
+            state.multi_enabled = True
+
+    def multi_disable():
+        with state.lock:
+            state.multi_enabled = False
+
     keyboard.on_press_key(cfg.hold_hotkey, lambda _: hold_enable())
     keyboard.on_release_key(cfg.hold_hotkey, lambda _: hold_disable())
+
+    keyboard.on_press_key(cfg.multi_key, lambda _: multi_enable())
+    keyboard.on_release_key(cfg.multi_key, lambda _: multi_disable())
 
     keyboard.add_hotkey(cfg.quit_hotkey, quit_app)
     keyboard.add_hotkey(cfg.calibrate_hotkey, toggle_calibrate)
@@ -238,12 +258,15 @@ def main():
     print("  WoW Auto-Shot (Rotation Weaver)")
     print("=" * 50)
     print(f"  Auto Shot pixel  : ({cfg.pixel_x}, {cfg.pixel_y})")
+    print(f"  Steady Shot pixel: ({cfg.steady_pixel_x}, {cfg.steady_pixel_y})")
     print(f"  Arcane Shot pixel: ({cfg.arcane_pixel_x}, {cfg.arcane_pixel_y})")
+    print(f"  Multi-Shot pixel : ({cfg.multi_pixel_x}, {cfg.multi_pixel_y})")
     print(f"  Mana pixel       : ({cfg.mana_pixel_x}, {cfg.mana_pixel_y})")
     print(f"  Sample size      : {cfg.sample_size}x{cfg.sample_size}")
     print(f"  Poll rate        : {cfg.poll_rate*1000:.0f}ms (~{1/cfg.poll_rate:.0f}fps)")
     print(f"  Steady Shot key  : {cfg.shot_key}")
     print(f"  Arcane Shot key  : {cfg.arcane_key}")
+    print(f"  Multi-Shot key   : {cfg.multi_key}")
     print(f"  Hold to enable   : {cfg.hold_hotkey}")
     print(f"  Calibrate        : {cfg.calibrate_hotkey}")
     print(f"  Quit hotkey      : {cfg.quit_hotkey}")
@@ -280,7 +303,9 @@ def main():
 
             # Read pixels
             new_state = read_pixel_state(sct, cfg.pixel_x, cfg.pixel_y, cfg)
+            steady_state = read_pixel_state(sct, cfg.steady_pixel_x, cfg.steady_pixel_y, cfg)
             arcane_state = read_pixel_state(sct, cfg.arcane_pixel_x, cfg.arcane_pixel_y, cfg)
+            multi_state = read_pixel_state(sct, cfg.multi_pixel_x, cfg.multi_pixel_y, cfg)
             mana_state = read_pixel_state(sct, cfg.mana_pixel_x, cfg.mana_pixel_y, cfg)
 
             # Debounce: require N consistent reads
@@ -294,14 +319,23 @@ def main():
                 state.current_state = new_state
 
                 # Act on state change
-                if new_state == PixelState.GREEN:
+                if new_state == PixelState.BLACK:
+                    # Auto Shot not active -> start it
+                    pydirectinput.press('1')
+                elif new_state == PixelState.GREEN:
                     # Idle and safe to cast -> press Steady Shot
                     pydirectinput.press(cfg.shot_key)
                 elif new_state == PixelState.RED:
-                    # Auto Shot coming soon - cast Arcane Shot if available
-                    if arcane_state == PixelState.BLUE and mana_state == PixelState.GREEN:
-                        pydirectinput.press(cfg.arcane_key)
-                        print(f"[STATE] RED      -> CAST ARCANE")
+                    # Auto Shot coming soon - cast instant if available and not casting Steady
+                    if steady_state != PixelState.YELLOW and mana_state == PixelState.GREEN:
+                        if state.multi_enabled and multi_state == PixelState.PINK:
+                            # Multi-Shot off cooldown (higher priority, hold 4 to enable)
+                            pydirectinput.press(cfg.multi_key)
+                            print(f"[STATE] RED      -> CAST MULTI")
+                        elif arcane_state == PixelState.BLUE:
+                            # Arcane Shot off cooldown
+                            pydirectinput.press(cfg.arcane_key)
+                            print(f"[STATE] RED      -> CAST ARCANE")
 
                 # Console output
                 if new_state != last_print_state:

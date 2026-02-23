@@ -1,12 +1,67 @@
-# WoW Auto-Walk
+# WoW Auto-Shot
 
-Automation utility for World of Warcraft hunters. Reads a WeakAura color indicator and automatically holds/releases the W key based on green/red state for optimal Auto Shot timing.
+Rotation weaver for World of Warcraft hunters. Reads WeakAura color indicators and automatically presses Steady Shot and Arcane Shot based on the Auto Shot swing timer.
+
+## Rotation Logic
+
+The script reads three WeakAura pixel indicators each frame and decides what to cast:
+
+### Auto Shot Pixel (15, 15)
+
+| Color | Meaning | Action |
+|-------|---------|--------|
+| BLACK | Not attacking / inactive | Do nothing |
+| GREEN | Auto Shot timer > 1.5s (safe to cast) | Press 2 (Steady Shot) |
+| YELLOW | Currently casting Steady Shot | Do nothing |
+| RED | Auto Shot within 1.5s | Check Arcane Shot |
+
+### Arcane Shot Pixel (45, 15)
+
+| Color | Meaning |
+|-------|---------|
+| BLUE | Off cooldown, ready to cast |
+| RED | On cooldown / unavailable |
+
+### Mana Pixel (75, 15)
+
+| Color | Meaning |
+|-------|---------|
+| GREEN | Mana >= 40% |
+| RED | Mana < 40% |
+
+### Shot Priority
+
+```
+1. Auto Shot pixel turns GREEN
+   -> Press 2 (Steady Shot)
+
+2. Auto Shot pixel turns RED (< 1.5s to Auto Shot)
+   AND Arcane Shot pixel is BLUE (off cooldown)
+   AND Mana pixel is GREEN (>= 40%)
+   -> Press 3 (Arcane Shot)
+
+3. Otherwise
+   -> Wait
+```
+
+### Color Cycle
+
+A typical rotation cycle looks like:
+
+```
+GREEN -> cast Steady Shot (press 2)
+YELLOW -> casting...
+RED -> Auto Shot soon, cast Arcane Shot if available (press 3)
+BLACK -> Auto Shot fires
+GREEN -> cast Steady Shot again
+...repeat
+```
 
 ## Requirements
 
 - Windows 11
 - Python 3.10+
-- Git
+- Run as Administrator (required for global hotkeys)
 
 ## Setup
 
@@ -23,12 +78,12 @@ python -m venv venv
 
 3. Activate the virtual environment:
 
-**Option A - Use Command Prompt (cmd.exe) instead of PowerShell:**
+**Option A - Command Prompt (cmd.exe):**
 ```cmd
 venv\Scripts\activate.bat
 ```
 
-**Option B - If using PowerShell/VSCode, first allow scripts (run once):**
+**Option B - PowerShell/VSCode (run once first):**
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
@@ -37,8 +92,6 @@ Then activate:
 venv\Scripts\Activate.ps1
 ```
 
-**VSCode tip:** You can also switch to Command Prompt: press `Ctrl+Shift+P` → "Terminal: Select Default Profile" → "Command Prompt"
-
 4. Install dependencies:
 ```cmd
 pip install -r requirements.txt
@@ -46,7 +99,6 @@ pip install -r requirements.txt
 
 ## Usage
 
-Run the script **as Administrator** (required for global hotkeys):
 ```cmd
 python main.py
 ```
@@ -55,31 +107,25 @@ python main.py
 
 | Key | Action |
 |-----|--------|
-| F1 (hold) | Hold to enable, release to disable |
-| F2 | Toggle on/off |
+| CAPS LOCK (hold) | Hold to enable, release to disable. Presses 1 (Auto Shot) on first press. |
 | F7 | Quit |
-| F8 | Calibration mode |
+| F8 | Calibration mode (shows RGB values for all pixels) |
 
 ### Configuration
 
 Edit `config.py` to adjust:
 
-- `pixel_x`, `pixel_y` - Screen coordinates of your WeakAura indicator
-- `green_threshold` - Green channel threshold (default: 150)
-- `red_threshold` - Red channel threshold (default: 150)
-- `move_key` - Key to hold when moving (default: 'w')
+- `pixel_x`, `pixel_y` - Auto Shot WA pixel position
+- `arcane_pixel_x`, `arcane_pixel_y` - Arcane Shot WA pixel position
+- `mana_pixel_x`, `mana_pixel_y` - Mana WA pixel position
+- `shot_key` - Steady Shot keybind (default: `2`)
+- `arcane_key` - Arcane Shot keybind (default: `3`)
+- `poll_rate` - Polling interval (default: 16ms / ~60fps)
+- `debounce_frames` - Consecutive reads required before state change (default: 2)
 
 ### Calibration
 
-1. Position your WeakAura green/red square on screen
-2. Press F8 to enter calibration mode
-3. Move the indicator under the configured pixel position
-4. Observe the RGB values and adjust thresholds if needed
-5. Press F8 again to exit calibration
-
-## How It Works
-
-- **Green pixel** = Hold W (safe to move)
-- **Red pixel** = Release W (stand still, let Auto Shot fire)
-
-The script samples a 3x3 pixel area at ~60fps with debouncing to prevent flickering.
+1. Press F8 to enter calibration mode
+2. All three pixel positions are read and displayed with their RGB values and detected state
+3. Verify colors match expected states
+4. Press F8 again to exit calibration

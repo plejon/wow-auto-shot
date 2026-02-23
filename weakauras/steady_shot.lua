@@ -34,9 +34,9 @@
     },
     ["blendMode"] = "BLEND",
     ["color"] = {
-        [1] = 0,
-        [2] = 0,
-        [3] = 0,
+        [1] = 1,
+        [2] = 1,
+        [3] = 1,
         [4] = 1,
     },
     ["conditions"] = {
@@ -45,9 +45,9 @@
                 [1] = {
                     ["property"] = "color",
                     ["value"] = {
-                        [1] = 0,
-                        [2] = 1,
-                        [3] = 0.10980392992496,
+                        [1] = 1,
+                        [2] = 0.74901962280273,
+                        [3] = 0,
                         [4] = 1,
                     },
                 },
@@ -57,16 +57,15 @@
                 ["value"] = 1,
                 ["variable"] = "show",
             },
-            ["linked"] = false,
         },
         [2] = {
             ["changes"] = {
                 [1] = {
                     ["property"] = "color",
                     ["value"] = {
-                        [1] = 1,
-                        [2] = 0,
-                        [3] = 0.11372549831867,
+                        [1] = 0,
+                        [2] = 1,
+                        [3] = 0.039215687662363,
                         [4] = 1,
                     },
                 },
@@ -74,8 +73,8 @@
             ["check"] = {
                 ["op"] = "<=",
                 ["trigger"] = 1,
-                ["value"] = "1.5",
-                ["variable"] = "expirationTime",
+                ["value"] = 0,
+                ["variable"] = "show",
             },
         },
     },
@@ -84,7 +83,7 @@
     ["desaturate"] = false,
     ["frameStrata"] = 1,
     ["height"] = 15,
-    ["id"] = "auto-shot",
+    ["id"] = "Steady Shot",
     ["information"] = {
     },
     ["internalVersion"] = 88,
@@ -124,9 +123,10 @@
         [1] = {
             ["trigger"] = {
                 ["check"] = "update",
+                ["custom"] = "function(allstates, event, unit, castGUID, spellID)\\n    if not aura_env.lastAutoShot then\\n        aura_env.lastAutoShot = 0\\n        aura_env.swingSpeed = 2.1\\n    end\\n    \\n    if event == \\\"PLAYER_ENTERING_WORLD\\\" then\\n        aura_env.swingSpeed = UnitRangedDamage(\\\"player\\\") or 2.1\\n    end\\n    \\n    if event == \\\"UNIT_SPELLCAST_SUCCEEDED\\\" and unit == \\\"player\\\" and spellID == 75 then\\n        aura_env.lastAutoShot = GetTime()\\n        aura_env.swingSpeed = UnitRangedDamage(\\\"player\\\") or 2.1\\n    end\\n    \\n    local speed = aura_env.swingSpeed\\n    local now = GetTime()\\n    local remaining = (aura_env.lastAutoShot + speed) - now\\n    \\n    -- Set color directly on the region\\n    if aura_env.region then\\n        if aura_env.lastAutoShot == 0 then\\n            aura_env.region:Color(0, 0, 0, 1)       -- BLACK: not active\\n        elseif remaining < 0.6 then\\n            aura_env.region:Color(1, 0, 0, 1)       -- RED: stop moving\\n        else\\n            aura_env.region:Color(0, 1, 0, 1)       -- GREEN: safe to move\\n        end\\n    end\\n    \\n    allstates[\\\"\\\"] = {\\n        show = true,\\n        changed = true,\\n    }\\n    \\n    return true\\nend",
                 ["custom_type"] = "status",
                 ["debuffType"] = "HELPFUL",
-                ["event"] = "Swing Timer",
+                ["event"] = "Cast",
                 ["events"] = "UNIT_SPELLCAST_SUCCEEDED, PLAYER_ENTERING_WORLD",
                 ["hand"] = "ranged",
                 ["names"] = {
@@ -135,7 +135,7 @@
                 ["spellIds"] = {
                 },
                 ["spellNames"] = {
-                    [1] = "75",
+                    [1] = "Steady Shot",
                 },
                 ["subeventPrefix"] = "SPELL",
                 ["subeventSuffix"] = "_CAST_START",
@@ -143,8 +143,6 @@
                 ["unit"] = "player",
                 ["use_count"] = false,
                 ["use_hand"] = true,
-                ["use_inverse"] = false,
-                ["use_remaining"] = false,
                 ["use_spellNames"] = true,
                 ["use_unit"] = true,
             },
@@ -154,17 +152,28 @@
         [2] = {
             ["trigger"] = {
                 ["debuffType"] = "HELPFUL",
-                ["event"] = "Conditions",
-                ["health"] = {
+                ["event"] = "Health",
+                ["percenthealth"] = {
                     [1] = "0",
                 },
-                ["health_operator"] = {
+                ["percenthealth_operator"] = {
                     [1] = "<",
                 },
                 ["type"] = "unit",
                 ["unit"] = "player",
+                ["use_percenthealth"] = true,
+                ["use_unit"] = true,
+            },
+            ["untrigger"] = {
+            },
+        },
+        [3] = {
+            ["trigger"] = {
+                ["debuffType"] = "HELPFUL",
+                ["event"] = "Conditions",
+                ["type"] = "unit",
+                ["unit"] = "player",
                 ["use_alwaystrue"] = true,
-                ["use_health"] = true,
                 ["use_unit"] = true,
             },
             ["untrigger"] = {
@@ -173,7 +182,7 @@
         ["activeTriggerMode"] = -10,
         ["disjunctive"] = "any",
     },
-    ["uid"] = "U5UGlCn9zV0",
+    ["uid"] = "ne4IMpLIM4t",
     ["width"] = 15,
     ["xOffset"] = 0,
     ["yOffset"] = 0,
