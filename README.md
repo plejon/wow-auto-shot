@@ -55,11 +55,8 @@ The script reads five WeakAura pixel indicators each frame and decides what to c
 3. Auto Shot pixel turns RED (< 1.5s to Auto Shot)
    AND Steady Shot pixel is not YELLOW (not casting)
    AND Mana pixel is GREEN (>= 40%)
-   -> Check instants:
-      a. Multi-Shot pixel is PINK (off CD) AND holding key 4
-         -> Press 4 (Multi-Shot)
-      b. Arcane Shot pixel is BLUE (off CD)
-         -> Press 3 (Arcane Shot)
+   AND Arcane Shot pixel is BLUE (off CD)
+   -> Press 3 (Arcane Shot)
 
 4. Otherwise
    -> Wait
@@ -73,7 +70,7 @@ A typical rotation cycle looks like:
 BLACK -> start Auto Shot (press 1)
 GREEN -> cast Steady Shot (press 2)
 YELLOW -> casting...
-RED -> Auto Shot soon, cast Multi-Shot or Arcane Shot if available
+RED -> Auto Shot soon, cast Arcane Shot if available
 GREEN -> cast Steady Shot again
 ...repeat
 ```
@@ -129,7 +126,6 @@ python main.py
 | Key | Action |
 |-----|--------|
 | CAPS LOCK (hold) | Enable rotation (Auto Shot, Steady Shot, Arcane Shot) |
-| 4 (hold) | Also include Multi-Shot in rotation (higher priority than Arcane) |
 | F7 | Quit |
 | F8 | Calibration mode (shows detected state for all pixels) |
 
