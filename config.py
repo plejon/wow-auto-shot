@@ -21,6 +21,6 @@ class Config:
 
     # Keys
     shot_key: str = '2'           # Steady Shot keybind
-    hold_hotkey: str = '1'        # hold to enable
+    hold_hotkey: str = 'caps lock' # hold to enable
     quit_hotkey: str = 'f7'
     calibrate_hotkey: str = 'f8'

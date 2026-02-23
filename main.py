@@ -232,7 +232,7 @@ def main():
     print(f"  Calibrate      : {cfg.calibrate_hotkey}")
     print(f"  Quit hotkey    : {cfg.quit_hotkey}")
     print("=" * 50)
-    print("  Hold 1 to enable, F8 calibrate, F7 quit")
+    print("  Hold CAPS LOCK to enable, F8 calibrate, F7 quit")
     print("=" * 50)
 
     # Start hotkey listener
