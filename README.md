@@ -1,25 +1,39 @@
 # WoW Auto-Shot
 
-Rotation weaver for World of Warcraft hunters. Reads WeakAura color indicators and automatically presses Steady Shot and Arcane Shot based on the Auto Shot swing timer.
+Rotation weaver for World of Warcraft hunters. Reads WeakAura color indicators and automatically casts Steady Shot, Arcane Shot, and Multi-Shot based on the Auto Shot swing timer.
 
 ## Rotation Logic
 
-The script reads three WeakAura pixel indicators each frame and decides what to cast:
+The script reads five WeakAura pixel indicators each frame and decides what to cast:
 
 ### Auto Shot Pixel (15, 15)
 
 | Color | Meaning | Action |
 |-------|---------|--------|
-| BLACK | Not attacking / inactive | Do nothing |
+| BLACK | Not attacking / inactive | Press 1 (start Auto Shot) |
 | GREEN | Auto Shot timer > 1.5s (safe to cast) | Press 2 (Steady Shot) |
 | YELLOW | Currently casting Steady Shot | Do nothing |
-| RED | Auto Shot within 1.5s | Check Arcane Shot |
+| RED | Auto Shot within 1.5s | Check instants |
+
+### Steady Shot Pixel (30, 15)
+
+| Color | Meaning |
+|-------|---------|
+| YELLOW | Currently casting |
+| GREEN | Not casting |
 
 ### Arcane Shot Pixel (45, 15)
 
 | Color | Meaning |
 |-------|---------|
 | BLUE | Off cooldown, ready to cast |
+| RED | On cooldown / unavailable |
+
+### Multi-Shot Pixel (60, 15)
+
+| Color | Meaning |
+|-------|---------|
+| PINK | Off cooldown, ready to cast |
 | RED | On cooldown / unavailable |
 
 ### Mana Pixel (75, 15)
@@ -32,15 +46,22 @@ The script reads three WeakAura pixel indicators each frame and decides what to 
 ### Shot Priority
 
 ```
-1. Auto Shot pixel turns GREEN
+1. Auto Shot pixel turns BLACK
+   -> Press 1 (start Auto Shot)
+
+2. Auto Shot pixel turns GREEN
    -> Press 2 (Steady Shot)
 
-2. Auto Shot pixel turns RED (< 1.5s to Auto Shot)
-   AND Arcane Shot pixel is BLUE (off cooldown)
+3. Auto Shot pixel turns RED (< 1.5s to Auto Shot)
+   AND Steady Shot pixel is not YELLOW (not casting)
    AND Mana pixel is GREEN (>= 40%)
-   -> Press 3 (Arcane Shot)
+   -> Check instants:
+      a. Multi-Shot pixel is PINK (off CD) AND holding key 4
+         -> Press 4 (Multi-Shot)
+      b. Arcane Shot pixel is BLUE (off CD)
+         -> Press 3 (Arcane Shot)
 
-3. Otherwise
+4. Otherwise
    -> Wait
 ```
 
@@ -49,10 +70,10 @@ The script reads three WeakAura pixel indicators each frame and decides what to 
 A typical rotation cycle looks like:
 
 ```
+BLACK -> start Auto Shot (press 1)
 GREEN -> cast Steady Shot (press 2)
 YELLOW -> casting...
-RED -> Auto Shot soon, cast Arcane Shot if available (press 3)
-BLACK -> Auto Shot fires
+RED -> Auto Shot soon, cast Multi-Shot or Arcane Shot if available
 GREEN -> cast Steady Shot again
 ...repeat
 ```
@@ -107,25 +128,29 @@ python main.py
 
 | Key | Action |
 |-----|--------|
-| CAPS LOCK (hold) | Hold to enable, release to disable. Presses 1 (Auto Shot) on first press. |
+| CAPS LOCK (hold) | Enable rotation (Auto Shot, Steady Shot, Arcane Shot) |
+| 4 (hold) | Also include Multi-Shot in rotation (higher priority than Arcane) |
 | F7 | Quit |
-| F8 | Calibration mode (shows RGB values for all pixels) |
+| F8 | Calibration mode (shows detected state for all pixels) |
 
 ### Configuration
 
 Edit `config.py` to adjust:
 
 - `pixel_x`, `pixel_y` - Auto Shot WA pixel position
+- `steady_pixel_x`, `steady_pixel_y` - Steady Shot WA pixel position
 - `arcane_pixel_x`, `arcane_pixel_y` - Arcane Shot WA pixel position
+- `multi_pixel_x`, `multi_pixel_y` - Multi-Shot WA pixel position
 - `mana_pixel_x`, `mana_pixel_y` - Mana WA pixel position
 - `shot_key` - Steady Shot keybind (default: `2`)
 - `arcane_key` - Arcane Shot keybind (default: `3`)
+- `multi_key` - Multi-Shot keybind (default: `4`)
 - `poll_rate` - Polling interval (default: 16ms / ~60fps)
 - `debounce_frames` - Consecutive reads required before state change (default: 2)
 
 ### Calibration
 
 1. Press F8 to enter calibration mode
-2. All three pixel positions are read and displayed with their RGB values and detected state
+2. All five pixel positions are read and displayed with their detected states
 3. Verify colors match expected states
 4. Press F8 again to exit calibration
