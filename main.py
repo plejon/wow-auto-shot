@@ -83,24 +83,21 @@ def read_pixel_state(sct: mss.mss, px_x: int, px_y: int, cfg: Config) -> PixelSt
     img = sct.grab(region)
 
     # Average the RGB values across the sample
-    # Note: mss returns BGRA format, so px[0]=B, px[1]=G, px[2]=R
+    # Note: img.pixel() returns (R, G, B) already converted from BGRA
     total_r, total_g, total_b = 0, 0, 0
     count = cfg.sample_size * cfg.sample_size
     for y in range(cfg.sample_size):
         for x in range(cfg.sample_size):
             px = img.pixel(x, y)
-            total_b += px[0]
+            total_r += px[0]
             total_g += px[1]
-            total_r += px[2]
+            total_b += px[2]
 
     avg_r = total_r // count
     avg_g = total_g // count
     avg_b = total_b // count
 
-    state = classify_pixel(avg_r, avg_g, avg_b, cfg)
-    if state in (PixelState.UNKNOWN, PixelState.BLUE):
-        print(f"[DEBUG] pos=({px_x},{px_y}) RGB=({avg_r},{avg_g},{avg_b}) -> {state.value}")
-    return state
+    return classify_pixel(avg_r, avg_g, avg_b, cfg)
 
 
 # ============================================================
@@ -116,7 +113,7 @@ def read_pixel_rgb(sct: mss.mss, px_x: int, px_y: int, cfg: Config):
     }
     img = sct.grab(region)
     px = img.pixel(cfg.sample_size // 2, cfg.sample_size // 2)
-    return px[2], px[1], px[0]  # R, G, B
+    return px[0], px[1], px[2]  # R, G, B (pixel() already converts from BGRA)
 
 
 def calibrate(sct: mss.mss, cfg: Config, app_state: AppState):
