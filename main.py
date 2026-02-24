@@ -179,23 +179,16 @@ def create_tray(state: AppState) -> pystray.Icon:
 # ------------------------------------------------------------------
 # Hotkeys
 # ------------------------------------------------------------------
+def poll_mode() -> Mode:
+    """Check held keys directly — more reliable than press/release events."""
+    if keyboard.is_pressed(HOLD_FULL_KEY):
+        return Mode.FULL
+    if keyboard.is_pressed(HOLD_SIMPLE_KEY):
+        return Mode.SIMPLE
+    return Mode.OFF
+
+
 def start_hotkeys(state: AppState):
-    def set_mode(mode):
-        def on_press(_):
-            with state.lock:
-                if state.mode != mode:
-                    state.mode = mode
-                    print(f"\n[{mode.value}] Enabled")
-        return on_press
-
-    def clear_mode(expected):
-        def on_release(_):
-            with state.lock:
-                if state.mode == expected:
-                    state.mode = Mode.OFF
-                    print(f"\n[OFF] Disabled")
-        return on_release
-
     def quit_app():
         print("\n[QUIT]")
         state.running = False
@@ -204,10 +197,6 @@ def start_hotkeys(state: AppState):
         with state.lock:
             state.calibrating = not state.calibrating
 
-    keyboard.on_press_key(HOLD_FULL_KEY, set_mode(Mode.FULL))
-    keyboard.on_release_key(HOLD_FULL_KEY, clear_mode(Mode.FULL))
-    keyboard.on_press_key(HOLD_SIMPLE_KEY, set_mode(Mode.SIMPLE))
-    keyboard.on_release_key(HOLD_SIMPLE_KEY, clear_mode(Mode.SIMPLE))
     keyboard.add_hotkey(QUIT_KEY, quit_app)
     keyboard.add_hotkey(CALIBRATE_KEY, toggle_calibrate)
 
@@ -252,9 +241,8 @@ def main():
                 calibrate(sct, state)
                 continue
 
-            # Mode check
-            with state.lock:
-                mode = state.mode
+            # Mode check (polled directly, not event-based)
+            mode = poll_mode()
             if mode == Mode.OFF:
                 time.sleep(0.05)
                 continue
