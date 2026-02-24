@@ -1,358 +1,284 @@
 """
-WoW Auto-Shot: Reads WeakAura color state and presses Steady Shot.
-Green pixel  = idle, safe to cast Steady Shot -> press key
-Yellow pixel = currently casting Steady Shot -> do nothing
-Red pixel    = Auto Shot coming soon -> don't cast
+WoW Auto-Shot rotation weaver.
 
-Requirements:
-    pip install mss pydirectinput pystray Pillow keyboard
+Reads 6 WeakAura color boxes (vertical layout) and presses the right ability:
+  BLACK  -> press 1 (start Auto Shot)
+  GREEN  -> press 2 (Steady Shot, >1.5s to swing)
+  YELLOW -> press 3 (Arcane Shot, 0.4-1.5s, if ready)
+  RED    -> wait (<0.4s to swing)
 
-Usage:
-    1. Position your WA green/yellow/red square on screen
-    2. Run this script
-    3. Use calibration mode (F8 key) to verify pixel coordinates
-    4. Hold 1 to enable, F7 to quit
+Requirements: pip install mss pydirectinput pystray Pillow keyboard
 """
 
 import mss
-import mss.tools
-import pydirectinput
 import time
 import threading
 from enum import Enum
 from PIL import Image
 import pystray
+import pydirectinput
+import keyboard
 
-from config import Config
+from config import (
+    Box, BOX_POS, STRIP,
+    ON_THRESHOLD, OFF_MAX, KEYS,
+    POLL_RATE, DEBOUNCE_FRAMES, REPRESS_INTERVAL,
+    HOLD_KEY, QUIT_KEY, CALIBRATE_KEY,
+)
 
 
-# ============================================================
-# State
-# ============================================================
-class PixelState(Enum):
-    GREEN = "GREEN"     # idle, safe to cast Steady Shot
-    YELLOW = "YELLOW"   # currently casting
-    RED = "RED"         # Auto Shot coming / on cooldown
-    BLUE = "BLUE"       # Arcane Shot off cooldown
-    PINK = "PINK"       # Multi-Shot off cooldown
-    BLACK = "BLACK"     # inactive / unknown
+# ------------------------------------------------------------------
+# Color classification
+# ------------------------------------------------------------------
+class Color(Enum):
+    BLACK = "BLACK"
+    GREEN = "GREEN"
+    YELLOW = "YELLOW"
+    RED = "RED"
+    BLUE = "BLUE"
+    PINK = "PINK"
     UNKNOWN = "UNKNOWN"
 
 
+def classify(r: int, g: int, b: int) -> Color:
+    """Classify an RGB triple into a WA color."""
+    on, off = ON_THRESHOLD, OFF_MAX
+    if r > on and g > on and b < off:
+        return Color.YELLOW
+    if g > on and r < off and b < off:
+        return Color.GREEN
+    if r > on and b > on and g < off:
+        return Color.PINK
+    if b > on and r < off and g < off:
+        return Color.BLUE
+    if r > on and g < off and b < off:
+        return Color.RED
+    if r < 50 and g < 50 and b < 50:
+        return Color.BLACK
+    return Color.UNKNOWN
+
+
+# ------------------------------------------------------------------
+# Screen reading — single grab, raw buffer
+# ------------------------------------------------------------------
+def read_all(sct: mss.mss) -> dict[Box, Color]:
+    """Grab the vertical strip once and classify each box."""
+    img = sct.grab(STRIP)
+    raw = img.raw  # BGRA bytes, row-major
+    stride = STRIP["width"] * 4
+    colors = {}
+    for box in Box:
+        sx, sy = BOX_POS[box]
+        lx, ly = sx - STRIP["left"], sy - STRIP["top"]
+        offset = ly * stride + lx * 4
+        b, g, r = raw[offset], raw[offset + 1], raw[offset + 2]
+        colors[box] = classify(r, g, b)
+    return colors
+
+
+def read_all_rgb(sct: mss.mss) -> dict[Box, tuple[int, int, int]]:
+    """Like read_all but returns raw (R, G, B) tuples for calibration."""
+    img = sct.grab(STRIP)
+    raw = img.raw
+    stride = STRIP["width"] * 4
+    result = {}
+    for box in Box:
+        sx, sy = BOX_POS[box]
+        lx, ly = sx - STRIP["left"], sy - STRIP["top"]
+        offset = ly * stride + lx * 4
+        b, g, r = raw[offset], raw[offset + 1], raw[offset + 2]
+        result[box] = (r, g, b)
+    return result
+
+
+# ------------------------------------------------------------------
+# Decision logic — pure function
+# ------------------------------------------------------------------
+def decide_action(colors: dict[Box, Color]) -> str | None:
+    """Return a key name from KEYS, or None to wait."""
+    auto = colors[Box.AUTO]
+    gcd_ready = colors[Box.GCD] == Color.GREEN
+
+    if auto == Color.BLACK:
+        return "auto"
+    if auto == Color.GREEN and gcd_ready:
+        return "steady"
+    if auto == Color.YELLOW and gcd_ready:
+        if colors[Box.STEADY] != Color.YELLOW and colors[Box.ARCANE] == Color.BLUE:
+            return "arcane"
+        return None
+    # RED, GCD active, or anything else -> wait
+    return None
+
+
+# ------------------------------------------------------------------
+# App state
+# ------------------------------------------------------------------
 class AppState:
     def __init__(self):
         self.enabled = False
         self.running = True
-        self.current_state = PixelState.UNKNOWN
         self.calibrating = False
-        self.debounce_count = 0
-        self.pending_state = PixelState.UNKNOWN
         self.lock = threading.Lock()
+        # Debounce
+        self.pending_action: str | None = None
+        self.debounce_count = 0
+        self.confirmed_action: str | None = None
 
 
-# ============================================================
-# Pixel reading
-# ============================================================
-def classify_pixel(r: int, g: int, b: int, cfg: Config) -> PixelState:
-    """Classify an RGB pixel into a WA state."""
-    # Yellow: both R and G high, B low (check before green/red since it overlaps)
-    if r > cfg.yellow_r_threshold and g > cfg.yellow_g_threshold and b < cfg.off_channel_max:
-        return PixelState.YELLOW
-    if g > cfg.green_threshold and r < cfg.off_channel_max and b < cfg.off_channel_max:
-        return PixelState.GREEN
-    # Pink: high R and high B, low G (check before blue/red since it overlaps)
-    if r > cfg.pink_r_threshold and b > cfg.pink_b_threshold and g < cfg.off_channel_max:
-        return PixelState.PINK
-    if b > cfg.blue_threshold and r < cfg.off_channel_max and g < cfg.off_channel_max:
-        return PixelState.BLUE
-    if r > cfg.red_threshold and g < cfg.off_channel_max and b < cfg.off_channel_max:
-        return PixelState.RED
-    if r < 50 and g < 50 and b < 50:
-        return PixelState.BLACK
-    return PixelState.UNKNOWN
-
-
-def read_pixel_state(sct: mss.mss, px_x: int, px_y: int, cfg: Config) -> PixelState:
-    """Sample an NxN area and return the dominant state."""
-    region = {
-        "top": px_y,
-        "left": px_x,
-        "width": cfg.sample_size,
-        "height": cfg.sample_size,
-    }
-    img = sct.grab(region)
-
-    # Average the RGB values across the sample
-    # Note: img.pixel() returns (R, G, B) already converted from BGRA
-    total_r, total_g, total_b = 0, 0, 0
-    count = cfg.sample_size * cfg.sample_size
-    for y in range(cfg.sample_size):
-        for x in range(cfg.sample_size):
-            px = img.pixel(x, y)
-            total_r += px[0]
-            total_g += px[1]
-            total_b += px[2]
-
-    avg_r = total_r // count
-    avg_g = total_g // count
-    avg_b = total_b // count
-
-    return classify_pixel(avg_r, avg_g, avg_b, cfg)
-
-
-# ============================================================
-# Calibration mode
-# ============================================================
-def read_pixel_rgb(sct: mss.mss, px_x: int, px_y: int, cfg: Config):
-    """Read the center pixel RGB from an NxN sample area."""
-    region = {
-        "top": px_y,
-        "left": px_x,
-        "width": cfg.sample_size,
-        "height": cfg.sample_size,
-    }
-    img = sct.grab(region)
-    px = img.pixel(cfg.sample_size // 2, cfg.sample_size // 2)
-    return px[0], px[1], px[2]  # R, G, B (pixel() already converts from BGRA)
-
-
-def calibrate(sct: mss.mss, cfg: Config, app_state: AppState):
-    """Live-print the pixel color at the configured positions."""
-    print("\n=== CALIBRATION MODE ===")
-    print(f"Auto Shot pixel  : ({cfg.pixel_x}, {cfg.pixel_y})")
-    print(f"Steady Shot pixel: ({cfg.steady_pixel_x}, {cfg.steady_pixel_y})")
-    print(f"Arcane Shot pixel: ({cfg.arcane_pixel_x}, {cfg.arcane_pixel_y})")
-    print(f"Multi-Shot pixel : ({cfg.multi_pixel_x}, {cfg.multi_pixel_y})")
-    print(f"Mana pixel       : ({cfg.mana_pixel_x}, {cfg.mana_pixel_y})")
-    print("Press F8 again to exit calibration.\n")
+# ------------------------------------------------------------------
+# Calibration
+# ------------------------------------------------------------------
+def calibrate(sct: mss.mss, state: AppState):
+    print("\n=== CALIBRATION MODE (F8 to exit) ===")
+    for box in Box:
+        sx, sy = BOX_POS[box]
+        print(f"  {box.name:6s} pixel: ({sx}, {sy})")
+    print()
 
     while True:
-        with app_state.lock:
-            if not app_state.calibrating:
+        with state.lock:
+            if not state.calibrating:
                 print("\n=== EXITED CALIBRATION ===")
-                break
+                return
 
-        r1, g1, b1 = read_pixel_rgb(sct, cfg.pixel_x, cfg.pixel_y, cfg)
-        s1 = classify_pixel(r1, g1, b1, cfg)
-        r2, g2, b2 = read_pixel_rgb(sct, cfg.steady_pixel_x, cfg.steady_pixel_y, cfg)
-        s2 = classify_pixel(r2, g2, b2, cfg)
-        r3, g3, b3 = read_pixel_rgb(sct, cfg.arcane_pixel_x, cfg.arcane_pixel_y, cfg)
-        s3 = classify_pixel(r3, g3, b3, cfg)
-        r4, g4, b4 = read_pixel_rgb(sct, cfg.multi_pixel_x, cfg.multi_pixel_y, cfg)
-        s4 = classify_pixel(r4, g4, b4, cfg)
-        r5, g5, b5 = read_pixel_rgb(sct, cfg.mana_pixel_x, cfg.mana_pixel_y, cfg)
-        s5 = classify_pixel(r5, g5, b5, cfg)
-        print(f"\r  Auto={s1.value:7s} Steady={s2.value:7s} Arcane={s3.value:7s} Multi={s4.value:7s} Mana={s5.value:7s}", end="", flush=True)
+        rgbs = read_all_rgb(sct)
+        colors = {box: classify(*rgb) for box, rgb in rgbs.items()}
+        parts = [f"{box.name}={colors[box].value:7s}" for box in Box]
+        print(f"\r  {'  '.join(parts)}", end="", flush=True)
         time.sleep(0.1)
 
 
-# ============================================================
+# ------------------------------------------------------------------
 # Tray icon
-# ============================================================
-def create_tray_icon(state: AppState) -> pystray.Icon:
-    """Create a system tray icon that shows current status."""
-
-    def make_image(color):
-        img = Image.new("RGB", (64, 64), color)
-        return img
-
-    def on_quit(icon, item):
+# ------------------------------------------------------------------
+def create_tray(state: AppState) -> pystray.Icon:
+    def on_quit(icon, _item):
         state.running = False
         icon.stop()
 
-    menu = pystray.Menu(
-        pystray.MenuItem("Quit (F7)", on_quit),
-    )
-
     icon = pystray.Icon(
         "wow-autoshot",
-        make_image("gray"),
-        "WoW AutoShot: OFF",
-        menu,
+        Image.new("RGB", (64, 64), "gray"),
+        "AutoShot: OFF",
+        pystray.Menu(pystray.MenuItem("Quit (F7)", on_quit)),
     )
     return icon
 
 
-def update_icon(icon: pystray.Icon, state: AppState):
-    """Update tray icon color based on state."""
-    if not state.enabled:
-        color = "gray"
-        tip = "AutoShot: OFF"
-    elif state.current_state == PixelState.GREEN:
-        color = "green"
-        tip = "AutoShot: IDLE"
-    elif state.current_state == PixelState.YELLOW:
-        color = "yellow"
-        tip = "AutoShot: CASTING"
-    elif state.current_state == PixelState.RED:
-        color = "red"
-        tip = "AutoShot: WAITING"
-    else:
-        color = "gray"
-        tip = "AutoShot: UNKNOWN"
-
-    icon.icon = Image.new("RGB", (64, 64), color)
-    icon.title = tip
-
-
-# ============================================================
-# Hotkey listener
-# ============================================================
-def hotkey_listener(state: AppState, cfg: Config):
-    """Listen for global hotkeys."""
-    import keyboard  # pip install keyboard
-
-    def hold_enable():
+# ------------------------------------------------------------------
+# Hotkeys
+# ------------------------------------------------------------------
+def start_hotkeys(state: AppState):
+    def enable(_):
         with state.lock:
             if not state.enabled:
                 state.enabled = True
-                print(f"\n[HOTKEY] AutoShot ENABLED (holding {cfg.hold_hotkey.upper()})")
+                print(f"\n[ON] Enabled")
 
-    def hold_disable():
+    def disable(_):
         with state.lock:
             if state.enabled:
                 state.enabled = False
-                print(f"\n[HOTKEY] AutoShot DISABLED (released {cfg.hold_hotkey.upper()})")
+                print(f"\n[OFF] Disabled")
 
     def quit_app():
-        print("\n[HOTKEY] Quitting...")
+        print("\n[QUIT]")
         state.running = False
 
     def toggle_calibrate():
         with state.lock:
             state.calibrating = not state.calibrating
 
-    # Hold F1 to enable, release to disable
-    keyboard.on_press_key(cfg.hold_hotkey, lambda _: hold_enable())
-    keyboard.on_release_key(cfg.hold_hotkey, lambda _: hold_disable())
-
-    keyboard.add_hotkey(cfg.quit_hotkey, quit_app)
-    keyboard.add_hotkey(cfg.calibrate_hotkey, toggle_calibrate)
-
-    while state.running:
-        time.sleep(0.1)
+    keyboard.on_press_key(HOLD_KEY, enable)
+    keyboard.on_release_key(HOLD_KEY, disable)
+    keyboard.add_hotkey(QUIT_KEY, quit_app)
+    keyboard.add_hotkey(CALIBRATE_KEY, toggle_calibrate)
 
 
-# ============================================================
-# Main loop
-# ============================================================
+# ------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------
 def main():
-    cfg = Config()
+    pydirectinput.PAUSE = 0
     state = AppState()
 
-    pydirectinput.PAUSE = 0  # no delay between inputs
-
+    # Banner
     print("=" * 50)
-    print("  WoW Auto-Shot (Rotation Weaver)")
+    print("  WoW Auto-Shot (Clean Rewrite)")
     print("=" * 50)
-    print(f"  Auto Shot pixel  : ({cfg.pixel_x}, {cfg.pixel_y})")
-    print(f"  Steady Shot pixel: ({cfg.steady_pixel_x}, {cfg.steady_pixel_y})")
-    print(f"  Arcane Shot pixel: ({cfg.arcane_pixel_x}, {cfg.arcane_pixel_y})")
-    print(f"  Multi-Shot pixel : ({cfg.multi_pixel_x}, {cfg.multi_pixel_y})")
-    print(f"  Mana pixel       : ({cfg.mana_pixel_x}, {cfg.mana_pixel_y})")
-    print(f"  Sample size      : {cfg.sample_size}x{cfg.sample_size}")
-    print(f"  Poll rate        : {cfg.poll_rate*1000:.0f}ms (~{1/cfg.poll_rate:.0f}fps)")
-    print(f"  Steady Shot key  : {cfg.shot_key}")
-    print(f"  Arcane Shot key  : {cfg.arcane_key}")
-    print(f"  Hold to enable   : {cfg.hold_hotkey}")
-    print(f"  Calibrate        : {cfg.calibrate_hotkey}")
-    print(f"  Quit hotkey      : {cfg.quit_hotkey}")
-    print("=" * 50)
-    print("  Hold CAPS LOCK to enable, F8 calibrate, F7 quit")
+    for box in Box:
+        sx, sy = BOX_POS[box]
+        print(f"  {box.name:6s} pixel: ({sx}, {sy})")
+    print(f"  Strip region   : {STRIP}")
+    print(f"  Poll rate      : {POLL_RATE*1000:.0f}ms (~{1/POLL_RATE:.0f}fps)")
+    print(f"  Keys           : {KEYS}")
+    print(f"  Hold to enable : {HOLD_KEY}")
+    print(f"  Calibrate      : {CALIBRATE_KEY}")
+    print(f"  Quit           : {QUIT_KEY}")
     print("=" * 50)
 
-    # Start hotkey listener
-    hk_thread = threading.Thread(target=hotkey_listener, args=(state, cfg), daemon=True)
-    hk_thread.start()
-
-    # Start tray icon
-    tray = create_tray_icon(state)
-    tray_thread = threading.Thread(target=tray.run, daemon=True)
-    tray_thread.start()
+    start_hotkeys(state)
+    tray = create_tray(state)
+    threading.Thread(target=tray.run, daemon=True).start()
 
     sct = mss.mss()
-    last_print_state = None
-    last_press_time = 0
+    last_press = 0
+    last_log_action: str | None = object()  # sentinel: never matches
 
     try:
         while state.running:
-            # Calibration mode
+            # Calibration
             with state.lock:
-                is_calibrating = state.calibrating
-            if is_calibrating:
-                calibrate(sct, cfg, state)
+                cal = state.calibrating
+            if cal:
+                calibrate(sct, state)
                 continue
 
+            # Enabled check
             with state.lock:
-                is_enabled = state.enabled
-            if not is_enabled:
+                enabled = state.enabled
+            if not enabled:
                 time.sleep(0.05)
                 continue
 
-            # Read pixels
-            new_state = read_pixel_state(sct, cfg.pixel_x, cfg.pixel_y, cfg)
-            steady_state = read_pixel_state(sct, cfg.steady_pixel_x, cfg.steady_pixel_y, cfg)
-            arcane_state = read_pixel_state(sct, cfg.arcane_pixel_x, cfg.arcane_pixel_y, cfg)
-            multi_state = read_pixel_state(sct, cfg.multi_pixel_x, cfg.multi_pixel_y, cfg)
-            mana_state = read_pixel_state(sct, cfg.mana_pixel_x, cfg.mana_pixel_y, cfg)
+            # Read + decide
+            colors = read_all(sct)
+            action = decide_action(colors)
 
-            # Debounce: require N consistent reads
-            if new_state == state.pending_state:
+            # Debounce
+            if action == state.pending_action:
                 state.debounce_count += 1
             else:
-                state.pending_state = new_state
+                state.pending_action = action
                 state.debounce_count = 1
 
-            if state.debounce_count >= cfg.debounce_frames:
-                # Console output + tray on state change
-                if new_state != state.current_state:
-                    state.current_state = new_state
-                    last_press_time = 0  # press immediately on state change
+            if state.debounce_count >= DEBOUNCE_FRAMES:
+                if action != state.confirmed_action:
+                    state.confirmed_action = action
+                    last_press = 0  # press immediately on change
 
-                    if new_state != last_print_state:
-                        if new_state == PixelState.BLACK:
-                            action = "START AUTO"
-                        elif new_state == PixelState.GREEN:
-                            action = "CAST STEADY"
-                        elif new_state == PixelState.YELLOW:
-                            action = "WEAVE INSTANT"
-                        elif new_state == PixelState.RED:
-                            action = "WAITING"
+                    # Log state change
+                    if action != last_log_action:
+                        auto_c = colors[Box.AUTO].value
+                        if action:
+                            print(f"[{auto_c:7s}] -> press {KEYS[action]} ({action})")
                         else:
-                            action = "IDLE"
-                        print(f"[STATE] {new_state.value:8s} -> {action}")
-                        last_print_state = new_state
+                            print(f"[{auto_c:7s}] -> wait")
+                        last_log_action = action
 
-                    try:
-                        update_icon(tray, state)
-                    except Exception:
-                        pass
-
-                # Press buttons — retry every 0.5s while state persists
+                # Press key (with re-press interval)
                 now = time.time()
-                if now - last_press_time >= 0.5:
-                    pressed = False
-                    if new_state == PixelState.BLACK:
-                        pydirectinput.press('1')
-                        pressed = True
-                    elif new_state == PixelState.GREEN:
-                        pydirectinput.press(cfg.shot_key)
-                        pressed = True
-                    elif new_state == PixelState.YELLOW:
-                        if steady_state != PixelState.YELLOW and mana_state == PixelState.GREEN:
-                            if arcane_state == PixelState.BLUE:
-                                pydirectinput.press(cfg.arcane_key)
-                                print(f"[STATE] YELLOW   -> CAST ARCANE")
-                                pressed = True
-                    if pressed:
-                        last_press_time = now
+                if action and now - last_press >= REPRESS_INTERVAL:
+                    pydirectinput.press(KEYS[action])
+                    last_press = now
 
-            time.sleep(cfg.poll_rate)
+            time.sleep(POLL_RATE)
 
     except KeyboardInterrupt:
         pass
     finally:
-        print("\nCleaned up. Bye!")
+        print("\nBye!")
         try:
             tray.stop()
         except Exception:
