@@ -23,7 +23,7 @@ from config import (
     Box, BOX_POS, STRIP,
     ON_THRESHOLD, OFF_MAX, KEYS,
     POLL_RATE, DEBOUNCE_FRAMES, REPRESS_INTERVAL,
-    HOLD_KEY, QUIT_KEY, CALIBRATE_KEY,
+    HOLD_FULL_KEY, HOLD_SIMPLE_KEY, QUIT_KEY, CALIBRATE_KEY,
 )
 
 
@@ -94,8 +94,10 @@ def read_all_rgb(sct: mss.mss) -> dict[Box, tuple[int, int, int]]:
 # ------------------------------------------------------------------
 # Decision logic — pure function
 # ------------------------------------------------------------------
-def decide_action(colors: dict[Box, Color]) -> str | None:
-    """Return a key name from KEYS, or None to wait."""
+def decide_action(colors: dict[Box, Color], simple: bool = False) -> str | None:
+    """Return a key name from KEYS, or None to wait.
+    simple=True: auto + steady only (quest/leveling mode).
+    """
     auto = colors[Box.AUTO]
     gcd_ready = colors[Box.GCD] == Color.GREEN
 
@@ -103,22 +105,28 @@ def decide_action(colors: dict[Box, Color]) -> str | None:
         return "auto"
     if auto == Color.GREEN and gcd_ready:
         return "steady"
-    if auto == Color.YELLOW and gcd_ready:
+    if not simple and auto == Color.YELLOW and gcd_ready:
         if (colors[Box.STEADY] != Color.YELLOW
                 and colors[Box.ARCANE] == Color.BLUE
                 and colors[Box.MANA] != Color.RED):
             return "arcane"
         return None
-    # RED, GCD active, or anything else -> wait
+    # RED, GCD active, simple mode YELLOW, or anything else -> wait
     return None
 
 
 # ------------------------------------------------------------------
 # App state
 # ------------------------------------------------------------------
+class Mode(Enum):
+    OFF = "OFF"
+    SIMPLE = "SIMPLE"   # auto + steady only
+    FULL = "FULL"       # full rotation with arcane weave
+
+
 class AppState:
     def __init__(self):
-        self.enabled = False
+        self.mode = Mode.OFF
         self.running = True
         self.calibrating = False
         self.lock = threading.Lock()
@@ -172,17 +180,21 @@ def create_tray(state: AppState) -> pystray.Icon:
 # Hotkeys
 # ------------------------------------------------------------------
 def start_hotkeys(state: AppState):
-    def enable(_):
-        with state.lock:
-            if not state.enabled:
-                state.enabled = True
-                print(f"\n[ON] Enabled")
+    def set_mode(mode):
+        def on_press(_):
+            with state.lock:
+                if state.mode != mode:
+                    state.mode = mode
+                    print(f"\n[{mode.value}] Enabled")
+        return on_press
 
-    def disable(_):
-        with state.lock:
-            if state.enabled:
-                state.enabled = False
-                print(f"\n[OFF] Disabled")
+    def clear_mode(expected):
+        def on_release(_):
+            with state.lock:
+                if state.mode == expected:
+                    state.mode = Mode.OFF
+                    print(f"\n[OFF] Disabled")
+        return on_release
 
     def quit_app():
         print("\n[QUIT]")
@@ -192,8 +204,10 @@ def start_hotkeys(state: AppState):
         with state.lock:
             state.calibrating = not state.calibrating
 
-    keyboard.on_press_key(HOLD_KEY, enable)
-    keyboard.on_release_key(HOLD_KEY, disable)
+    keyboard.on_press_key(HOLD_FULL_KEY, set_mode(Mode.FULL))
+    keyboard.on_release_key(HOLD_FULL_KEY, clear_mode(Mode.FULL))
+    keyboard.on_press_key(HOLD_SIMPLE_KEY, set_mode(Mode.SIMPLE))
+    keyboard.on_release_key(HOLD_SIMPLE_KEY, clear_mode(Mode.SIMPLE))
     keyboard.add_hotkey(QUIT_KEY, quit_app)
     keyboard.add_hotkey(CALIBRATE_KEY, toggle_calibrate)
 
@@ -215,7 +229,8 @@ def main():
     print(f"  Strip region   : {STRIP}")
     print(f"  Poll rate      : {POLL_RATE*1000:.0f}ms (~{1/POLL_RATE:.0f}fps)")
     print(f"  Keys           : {KEYS}")
-    print(f"  Hold to enable : {HOLD_KEY}")
+    print(f"  Full rotation  : hold {HOLD_FULL_KEY}")
+    print(f"  Simple (quest) : hold {HOLD_SIMPLE_KEY}")
     print(f"  Calibrate      : {CALIBRATE_KEY}")
     print(f"  Quit           : {QUIT_KEY}")
     print("=" * 50)
@@ -237,16 +252,16 @@ def main():
                 calibrate(sct, state)
                 continue
 
-            # Enabled check
+            # Mode check
             with state.lock:
-                enabled = state.enabled
-            if not enabled:
+                mode = state.mode
+            if mode == Mode.OFF:
                 time.sleep(0.05)
                 continue
 
             # Read + decide
             colors = read_all(sct)
-            action = decide_action(colors)
+            action = decide_action(colors, simple=(mode == Mode.SIMPLE))
 
             # Debounce
             if action == state.pending_action:
