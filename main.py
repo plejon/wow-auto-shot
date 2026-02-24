@@ -104,7 +104,9 @@ def decide_action(colors: dict[Box, Color]) -> str | None:
     if auto == Color.GREEN and gcd_ready:
         return "steady"
     if auto == Color.YELLOW and gcd_ready:
-        if colors[Box.STEADY] != Color.YELLOW and colors[Box.ARCANE] == Color.BLUE:
+        if (colors[Box.STEADY] != Color.YELLOW
+                and colors[Box.ARCANE] == Color.BLUE
+                and colors[Box.MANA] != Color.RED):
             return "arcane"
         return None
     # RED, GCD active, or anything else -> wait
