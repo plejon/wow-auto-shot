@@ -3,6 +3,8 @@
         ["finish"] = {
         },
         ["init"] = {
+            ["custom"] = "local env = aura_env\\nlocal region = WeakAuras.GetRegion(aura_env.id)\\nif region then\\n    region:SetScript(\\\"OnUpdate\\\", function()\\n            local remaining = (env.lastAutoShot + env.swingSpeed) - GetTime()\\n            \\n            local _, _, _, castMs = GetSpellInfo(\\\"Steady Shot\\\")\\n            local threshold = (castMs or 1500) / 1000\\n            \\n            if env.lastAutoShot == 0 then\\n                region:Color(0, 0, 0, 1)                 -- BLACK: not attacking\\n            elseif remaining > threshold then\\n                region:Color(0, 1, 0, 1)                 -- GREEN: cast Steady\\n            elseif remaining > 0.5 then\\n                region:Color(1, 1, 0, 1)                 -- YELLOW: cast instant\\n            else\\n                region:Color(1, 0, 0, 1)                 -- RED: wait\\n            end\\n    end)\\nend\\n\\n\\n",
+            ["do_custom"] = true,
         },
         ["start"] = {
         },
@@ -40,44 +42,6 @@
         [4] = 1,
     },
     ["conditions"] = {
-        [1] = {
-            ["changes"] = {
-                [1] = {
-                    ["property"] = "color",
-                    ["value"] = {
-                        [1] = 0,
-                        [2] = 1,
-                        [3] = 0.10980392992496,
-                        [4] = 1,
-                    },
-                },
-            },
-            ["check"] = {
-                ["trigger"] = 1,
-                ["value"] = 1,
-                ["variable"] = "show",
-            },
-            ["linked"] = false,
-        },
-        [2] = {
-            ["changes"] = {
-                [1] = {
-                    ["property"] = "color",
-                    ["value"] = {
-                        [1] = 1,
-                        [2] = 0,
-                        [3] = 0.11372549831867,
-                        [4] = 1,
-                    },
-                },
-            },
-            ["check"] = {
-                ["op"] = "<=",
-                ["trigger"] = 1,
-                ["value"] = "1.5",
-                ["variable"] = "expirationTime",
-            },
-        },
     },
     ["config"] = {
     },
@@ -108,7 +72,7 @@
         ["use_never"] = false,
     },
     ["mirror"] = false,
-    ["parent"] = "Rotation",
+    ["parent"] = "Auto Rotation",
     ["regionType"] = "texture",
     ["rotate"] = false,
     ["rotation"] = 0,
@@ -117,17 +81,52 @@
         [1] = {
             ["type"] = "subbackground",
         },
+        [2] = {
+            ["anchorXOffset"] = 0,
+            ["anchorYOffset"] = 0,
+            ["anchor_point"] = "RIGHT",
+            ["rotateText"] = "NONE",
+            ["text_anchorXOffset"] = 10,
+            ["text_anchorYOffset"] = 0,
+            ["text_automaticWidth"] = "Auto",
+            ["text_color"] = {
+                [1] = 1,
+                [2] = 1,
+                [3] = 1,
+                [4] = 1,
+            },
+            ["text_fixedWidth"] = 64,
+            ["text_font"] = "Friz Quadrata TT",
+            ["text_fontSize"] = 14,
+            ["text_fontType"] = "None",
+            ["text_justify"] = "CENTER",
+            ["text_selfPoint"] = "AUTO",
+            ["text_shadowColor"] = {
+                [1] = 0,
+                [2] = 0,
+                [3] = 0,
+                [4] = 1,
+            },
+            ["text_shadowXOffset"] = 0,
+            ["text_shadowYOffset"] = 0,
+            ["text_text"] = "auto shot",
+            ["text_text_format_n_format"] = "none",
+            ["text_visible"] = true,
+            ["text_wordWrap"] = "WordWrap",
+            ["type"] = "subtext",
+        },
     },
     ["texture"] = "Interface\\\\AddOns\\\\WeakAuras\\\\Media\\\\Textures\\\\Square_FullWhite",
     ["textureWrapMode"] = "CLAMPTOBLACKADDITIVE",
     ["triggers"] = {
         [1] = {
             ["trigger"] = {
-                ["check"] = "update",
-                ["custom_type"] = "status",
+                ["check"] = "event",
+                ["custom"] = "function(allstates, event, unit, castGUID, spellID)                                                                                                                                                     \\n    if type(allstates) ~= \\\"table\\\" then return end                                                                                                                                                       \\n    \\n    if not aura_env.lastAutoShot then\\n        aura_env.lastAutoShot = 0\\n        aura_env.swingSpeed = UnitRangedDamage(\\\"player\\\") or 2.1\\n    end\\n    \\n    if event == \\\"PLAYER_ENTERING_WORLD\\\" then\\n        aura_env.swingSpeed = UnitRangedDamage(\\\"player\\\") or 2.1\\n    end\\n    \\n    if event == \\\"UNIT_SPELLCAST_SUCCEEDED\\\" and spellID == 75 then\\n        aura_env.lastAutoShot = GetTime()\\n        aura_env.swingSpeed = UnitRangedDamage(\\\"player\\\") or 2.1\\n    end\\n    \\n    allstates[\\\"\\\"] = { show = true, changed = true }\\n    return true\\nend",
+                ["custom_type"] = "stateupdate",
                 ["debuffType"] = "HELPFUL",
                 ["event"] = "Swing Timer",
-                ["events"] = "UNIT_SPELLCAST_SUCCEEDED, PLAYER_ENTERING_WORLD",
+                ["events"] = "UNIT_SPELLCAST_SUCCEEDED:player, PLAYER_ENTERING_WORLD, UNIT_SPELL_HASTE:player",
                 ["hand"] = "ranged",
                 ["names"] = {
                 },
@@ -139,7 +138,7 @@
                 },
                 ["subeventPrefix"] = "SPELL",
                 ["subeventSuffix"] = "_CAST_START",
-                ["type"] = "unit",
+                ["type"] = "custom",
                 ["unit"] = "player",
                 ["use_count"] = false,
                 ["use_hand"] = true,
