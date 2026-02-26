@@ -1,7 +1,7 @@
 """
 WoW Auto-Shot rotation weaver.
 
-Reads 6 WeakAura color boxes (vertical layout) and presses the right ability:
+Reads 11 WeakAura color boxes (vertical layout) and presses the right ability:
   BLACK  -> press 1 (start Auto Shot)
   GREEN  -> press 2 (Steady Shot, >1.5s to swing)
   YELLOW -> press 3 (Arcane Shot, 0.4-1.5s, if ready)
@@ -23,7 +23,9 @@ from config import (
     Box, BOX_POS, STRIP,
     ON_THRESHOLD, OFF_MAX, KEYS,
     POLL_RATE, DEBOUNCE_FRAMES, REPRESS_INTERVAL,
-    HOLD_FULL_KEY, HOLD_SIMPLE_KEY, QUIT_KEY, CALIBRATE_KEY,
+    HOLD_CLEAVE_KEY, HOLD_FULL_KEY, HOLD_SIMPLE_KEY, QUIT_KEY, CALIBRATE_KEY,
+    HASTE_BUFFS, BASE_WEAPON_SPEED, QUIVER_HASTE, TALENT_HASTE, GEAR_HASTE,
+    STEADY_CAST_TIME, HASTE_YELLOW_STEADY_GAP,
 )
 
 
@@ -92,11 +94,26 @@ def read_all_rgb(sct: mss.mss) -> dict[Box, tuple[int, int, int]]:
 
 
 # ------------------------------------------------------------------
+# Haste calculation — pure function
+# ------------------------------------------------------------------
+def calc_effective_speed(colors: dict[Box, Color]) -> float:
+    """Return effective auto shot interval accounting for all haste."""
+    passive = (1 + QUIVER_HASTE) * (1 + TALENT_HASTE) * (1 + GEAR_HASTE)
+    active = 1.0
+    for box, multiplier in HASTE_BUFFS.items():
+        if colors[box] == Color.PINK:
+            active *= multiplier
+    return BASE_WEAPON_SPEED / (passive * active)
+
+
+# ------------------------------------------------------------------
 # Decision logic — pure function
 # ------------------------------------------------------------------
-def decide_action(colors: dict[Box, Color], simple: bool = False) -> str | None:
+def decide_action(colors: dict[Box, Color], simple: bool = False,
+                   allow_multi: bool = False) -> str | None:
     """Return a key name from KEYS, or None to wait.
     simple=True: auto + steady only (quest/leveling mode).
+    allow_multi=True: weave Multi-Shot when off CD (prioritised over Arcane).
     """
     auto = colors[Box.AUTO]
     gcd_ready = colors[Box.GCD] == Color.GREEN
@@ -107,9 +124,14 @@ def decide_action(colors: dict[Box, Color], simple: bool = False) -> str | None:
         return "steady"
     if not simple and auto == Color.YELLOW and gcd_ready:
         if (colors[Box.STEADY] != Color.YELLOW
-                and colors[Box.ARCANE] == Color.BLUE
                 and colors[Box.MANA] != Color.RED):
-            return "arcane"
+            if allow_multi and colors[Box.MULTI] == Color.PINK:
+                return "multi"
+            if colors[Box.ARCANE] == Color.BLUE:
+                return "arcane"
+            # No instant available — cast Steady if hasted
+            if calc_effective_speed(colors) - STEADY_CAST_TIME < HASTE_YELLOW_STEADY_GAP:
+                return "steady"
         return None
     # RED, GCD active, simple mode YELLOW, or anything else -> wait
     return None
@@ -122,6 +144,7 @@ class Mode(Enum):
     OFF = "OFF"
     SIMPLE = "SIMPLE"   # auto + steady only
     FULL = "FULL"       # full rotation with arcane weave
+    CLEAVE = "CLEAVE"   # full rotation with arcane + multi weave
 
 
 class AppState:
@@ -181,6 +204,8 @@ def create_tray(state: AppState) -> pystray.Icon:
 # ------------------------------------------------------------------
 def poll_mode() -> Mode:
     """Check held keys directly — more reliable than press/release events."""
+    if keyboard.is_pressed(HOLD_CLEAVE_KEY):
+        return Mode.CLEAVE
     if keyboard.is_pressed(HOLD_FULL_KEY):
         return Mode.FULL
     if keyboard.is_pressed(HOLD_SIMPLE_KEY):
@@ -216,9 +241,16 @@ def main():
         sx, sy = BOX_POS[box]
         print(f"  {box.name:6s} pixel: ({sx}, {sy})")
     print(f"  Strip region   : {STRIP}")
+    passive = (1 + QUIVER_HASTE) * (1 + TALENT_HASTE) * (1 + GEAR_HASTE)
+    base_effective = BASE_WEAPON_SPEED / passive
+    print(f"  Base weapon spd: {BASE_WEAPON_SPEED:.1f}s")
+    print(f"  Passive haste  : quiver {QUIVER_HASTE:.0%} + talent {TALENT_HASTE:.0%} + gear {GEAR_HASTE:.0%} = {passive:.2f}x")
+    print(f"  Effective speed: {base_effective:.2f}s (no active buffs)")
+    print(f"  Haste threshold: Steady in YELLOW when GREEN < {HASTE_YELLOW_STEADY_GAP*1000:.0f}ms")
     print(f"  Poll rate      : {POLL_RATE*1000:.0f}ms (~{1/POLL_RATE:.0f}fps)")
     print(f"  Keys           : {KEYS}")
     print(f"  Full rotation  : hold {HOLD_FULL_KEY}")
+    print(f"  No multi-shot  : hold {HOLD_CLEAVE_KEY}")
     print(f"  Simple (quest) : hold {HOLD_SIMPLE_KEY}")
     print(f"  Calibrate      : {CALIBRATE_KEY}")
     print(f"  Quit           : {QUIT_KEY}")
@@ -249,7 +281,8 @@ def main():
 
             # Read + decide
             colors = read_all(sct)
-            action = decide_action(colors, simple=(mode == Mode.SIMPLE))
+            action = decide_action(colors, simple=(mode == Mode.SIMPLE),
+                                   allow_multi=(mode != Mode.CLEAVE))
 
             # Debounce
             if action == state.pending_action:
@@ -274,7 +307,11 @@ def main():
 
                 # Press key (with re-press interval)
                 now = time.time()
-                if action and now - last_press >= REPRESS_INTERVAL:
+                interval = REPRESS_INTERVAL
+                # Spam steady until cast confirms (STEADY turns YELLOW)
+                if action == "steady" and colors[Box.STEADY] != Color.YELLOW:
+                    interval = POLL_RATE
+                if action and now - last_press >= interval:
                     pydirectinput.press(KEYS[action])
                     last_press = now
 
