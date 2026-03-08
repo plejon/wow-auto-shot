@@ -55,7 +55,7 @@ KEYS = {
 }
 
 # Passive haste (always active)
-BASE_WEAPON_SPEED = 3.0
+BASE_WEAPON_SPEED = 2.9
 QUIVER_HASTE = 0.15       # 15% quiver
 TALENT_HASTE = 0.20       # 20% Serpent's Swiftness
 GEAR_HASTE = 0.0          # haste % from gear (update as you get gear)
