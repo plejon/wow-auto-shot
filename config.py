@@ -13,6 +13,7 @@ class Box(IntEnum):
     HASTE_POT = 8
     DRUMS = 9
     IMP_HAWK = 10
+    KILL_CMD = 11
 
 
 # Screen coordinates for each box center (measured in Paint)
@@ -28,6 +29,7 @@ BOX_POS = {
     Box.HASTE_POT:  (15, 290),
     Box.DRUMS:      (15, 325),
     Box.IMP_HAWK:   (15, 360),
+    Box.KILL_CMD:   (15, 395),
 }
 
 # Grab region covering all boxes (single column, 1px wide)
@@ -49,6 +51,7 @@ KEYS = {
     "steady": "2",
     "arcane": "3",
     "multi": "4",
+    "kill_cmd": "6",
 }
 
 # Passive haste (always active)
@@ -59,7 +62,7 @@ GEAR_HASTE = 0.0          # haste % from gear (update as you get gear)
 
 # Steady Shot
 STEADY_CAST_TIME = 1.5
-HASTE_YELLOW_STEADY_GAP = 0.2  # allow Steady in YELLOW when GREEN window < 200ms
+HASTE_YELLOW_STEADY_GAP = 0.4  # allow Steady in YELLOW when GREEN window < 400ms
 
 # Active haste buff multipliers (matched to WA boxes)
 HASTE_BUFFS = {

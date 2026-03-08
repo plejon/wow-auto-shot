@@ -262,6 +262,7 @@ def main():
 
     sct = mss.mss()
     last_press = 0
+    last_press_kc = 0
     last_log_action: str | None = object()  # sentinel: never matches
 
     try:
@@ -305,9 +306,15 @@ def main():
                             print(f"[{auto_c:7s}] -> wait")
                         last_log_action = action
 
-                # Press key (with re-press interval)
+                # Kill Command — off-GCD, press whenever available + not casting
                 now = time.time()
-                interval = REPRESS_INTERVAL
+                if (colors[Box.KILL_CMD] == Color.BLUE
+                        and colors[Box.STEADY] != Color.YELLOW
+                        and now - last_press_kc >= REPRESS_INTERVAL):
+                    pydirectinput.press(KEYS["kill_cmd"])
+                    last_press_kc = now
+
+                # Press key (with re-press interval)
                 # Spam steady until cast confirms (STEADY turns YELLOW)
                 if action == "steady" and colors[Box.STEADY] != Color.YELLOW:
                     interval = POLL_RATE
