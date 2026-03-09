@@ -318,6 +318,8 @@ def main():
                 # Spam steady until cast confirms (STEADY turns YELLOW)
                 if action == "steady" and colors[Box.STEADY] != Color.YELLOW:
                     interval = POLL_RATE
+                else:
+                    interval = REPRESS_INTERVAL
                 if action and now - last_press >= interval:
                     pydirectinput.press(KEYS[action])
                     last_press = now
