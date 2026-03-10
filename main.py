@@ -144,7 +144,7 @@ class Mode(Enum):
     OFF = "OFF"
     SIMPLE = "SIMPLE"   # auto + steady only
     FULL = "FULL"       # full rotation with arcane weave
-    CLEAVE = "CLEAVE"   # full rotation with arcane + multi weave
+    CLEAVE = "CLEAVE"   # full rotation with arcane weave, no multi-shot
 
 
 class AppState:
