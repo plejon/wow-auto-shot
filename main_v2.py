@@ -21,9 +21,10 @@ import keyboard
 
 from config_v2 import (
     Box, BOX_POS, STRIP,
-    ON_THRESHOLD, OFF_MAX, KEYS,
+    ON_THRESHOLD, OFF_MAX, KEYS, CD_KEYS,
     POLL_RATE, DEBOUNCE_FRAMES, REPRESS_INTERVAL,
-    HOLD_CLEAVE_KEY, HOLD_FULL_KEY, HOLD_SIMPLE_KEY, QUIT_KEY, CALIBRATE_KEY,
+    HOLD_CLEAVE_KEY, HOLD_FULL_KEY, HOLD_SIMPLE_KEY, HOLD_CD_KEY,
+    QUIT_KEY, CALIBRATE_KEY,
 )
 
 
@@ -229,6 +230,8 @@ def main():
     print(f"  Full rotation  : hold {HOLD_FULL_KEY}")
     print(f"  No multi-shot  : hold {HOLD_CLEAVE_KEY}")
     print(f"  Simple (quest) : hold {HOLD_SIMPLE_KEY}")
+    print(f"  Pop cooldowns  : hold {HOLD_CD_KEY}")
+    print(f"  CD keys        : {CD_KEYS}")
     print(f"  Calibrate      : {CALIBRATE_KEY}")
     print(f"  Quit           : {QUIT_KEY}")
     print("=" * 50)
@@ -240,6 +243,7 @@ def main():
     sct = mss.mss()
     last_press = 0
     last_press_kc = 0
+    last_press_cd: dict[str, float] = {name: 0 for name in CD_KEYS}
     last_log_action: str | None = object()  # sentinel: never matches
 
     try:
@@ -283,8 +287,16 @@ def main():
                             print(f"[{auto_c:7s}] -> wait")
                         last_log_action = action
 
-                # Kill Command — off-GCD, press whenever available + not casting
+                # Cooldowns — press all when F held (off-GCD, one per loop)
                 now = time.time()
+                if keyboard.is_pressed(HOLD_CD_KEY):
+                    for cd_name, cd_key in CD_KEYS.items():
+                        if now - last_press_cd[cd_name] >= REPRESS_INTERVAL:
+                            pydirectinput.press(cd_key)
+                            last_press_cd[cd_name] = now
+                            break  # one CD per loop to avoid input flood
+
+                # Kill Command — off-GCD, press whenever available + not casting
                 if (colors[Box.KILL_CMD] == Color.BLUE
                         and colors[Box.STEADY] != Color.YELLOW
                         and now - last_press_kc >= REPRESS_INTERVAL):

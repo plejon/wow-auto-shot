@@ -46,6 +46,14 @@ KEYS = {
     "kill_cmd": "6",
 }
 
+# Cooldown key bindings (update these to match your in-game binds)
+CD_KEYS = {
+    "rapid_fire": "7",
+    "bestial_wrath": "8",
+    "trinket1": "9",
+    "trinket2": "0",
+}
+
 # Timing
 POLL_RATE = 0.008
 DEBOUNCE_FRAMES = 2
@@ -55,5 +63,6 @@ REPRESS_INTERVAL = 0.5
 HOLD_CLEAVE_KEY = "§"         # cleave rotation (steady + arcane + multi weave)
 HOLD_FULL_KEY = "caps lock"   # full rotation (steady + arcane weave)
 HOLD_SIMPLE_KEY = "1"         # simple rotation (auto + steady only)
+HOLD_CD_KEY = "f"            # hold to pop cooldowns
 QUIT_KEY = "f7"
 CALIBRATE_KEY = "f8"
