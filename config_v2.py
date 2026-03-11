@@ -46,12 +46,12 @@ KEYS = {
     "kill_cmd": "6",
 }
 
-# Cooldown key bindings (update these to match your in-game binds)
+# Cooldown key bindings
 CD_KEYS = {
-    "rapid_fire": "7",
-    "bestial_wrath": "8",
-    "trinket1": "9",
-    "trinket2": "0",
+    "rapid_fire": "f12",
+    "bestial_wrath": "f11",
+    "trinket1": "f10",
+    "trinket2": "f9",
 }
 
 # Timing
