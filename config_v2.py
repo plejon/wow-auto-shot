@@ -10,18 +10,26 @@ class Box(IntEnum):
     GCD = 5
     MULTI_OK = 6
     KILL_CMD = 7
+    RAPID_FIRE = 8
+    BESTIAL_WRATH = 9
+    TRINKET1 = 10
+    TRINKET2 = 11
 
 
 # Screen coordinates for each box center (horizontal layout, y=15)
 BOX_POS = {
-    Box.AUTO:     (15, 15),
-    Box.STEADY:   (50, 15),
-    Box.ARCANE:   (85, 15),
-    Box.MULTI:    (120, 15),
-    Box.MANA:     (150, 15),
-    Box.GCD:      (185, 15),
-    Box.MULTI_OK: (220, 15),
-    Box.KILL_CMD: (255, 15),
+    Box.AUTO:          (15, 15),
+    Box.STEADY:        (50, 15),
+    Box.ARCANE:        (85, 15),
+    Box.MULTI:         (120, 15),
+    Box.MANA:          (150, 15),
+    Box.GCD:           (185, 15),
+    Box.MULTI_OK:      (220, 15),
+    Box.KILL_CMD:      (255, 15),
+    Box.RAPID_FIRE:    (290, 15),
+    Box.BESTIAL_WRATH: (325, 15),
+    Box.TRINKET1:      (360, 15),
+    Box.TRINKET2:      (395, 15),
 }
 
 # Grab region covering all boxes (single row, 1px tall)
@@ -46,12 +54,12 @@ KEYS = {
     "kill_cmd": "6",
 }
 
-# Cooldown key bindings
-CD_KEYS = {
-    "rapid_fire": "f12",
-    "bestial_wrath": "f11",
-    "trinket1": "f10",
-    "trinket2": "f9",
+# Cooldown boxes → key bindings
+CD_BOXES = {
+    Box.RAPID_FIRE:    "f12",
+    Box.BESTIAL_WRATH: "f11",
+    Box.TRINKET1:      "f10",
+    Box.TRINKET2:      "f9",
 }
 
 # Timing
