@@ -47,7 +47,7 @@ OFF_MAX = 100
 
 # Key bindings
 KEYS = {
-    "auto": "1",
+    "auto": "7",
     "steady": "2",
     "arcane": "3",
     "multi": "4",
@@ -81,6 +81,6 @@ REPRESS_INTERVAL = 0.5
 # Hotkeys
 HOLD_CLEAVE_KEY = "§"         # cleave rotation (steady + arcane + multi weave)
 HOLD_FULL_KEY = "caps lock"   # full rotation (steady + arcane weave)
-HOLD_SIMPLE_KEY = "`"         # simple rotation (auto + steady only)
+HOLD_SIMPLE_KEY = "1"         # simple rotation (auto + steady only)
 QUIT_KEY = "f7"
 CALIBRATE_KEY = "f8"
