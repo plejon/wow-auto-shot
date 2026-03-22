@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BM Hunter Pre-Raid BiS Tracker</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --card: #16213e;
+    --card-hover: #1a2745;
+    --border: #0f3460;
+    --text: #e0e0e0;
+    --text-dim: #8888aa;
+    --gold: #ffd700;
+    --green: #4caf50;
+    --blue: #5090d0;
+    --purple: #a855f7;
+    --epic: #a335ee;
+    --rare: #0070dd;
+    --uncommon: #1eff00;
+    --checked-bg: #0d2a1a;
+    --checked-border: #1b5e20;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  h1 {
+    text-align: center;
+    color: var(--gold);
+    margin-bottom: 4px;
+    font-size: 1.6em;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    font-size: 0.85em;
+  }
+  .progress-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .progress-bar .bar-wrap {
+    background: #0a0a1a;
+    border-radius: 4px;
+    height: 20px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .progress-bar .bar-fill {
+    background: linear-gradient(90deg, var(--green), #66bb6a);
+    height: 100%;
+    transition: width 0.3s;
+    border-radius: 4px;
+  }
+  .progress-text { color: var(--gold); font-weight: 600; }
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    justify-content: center;
+  }
+  .filters button {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: all 0.15s;
+  }
+  .filters button:hover { background: var(--card-hover); }
+  .filters button.active { border-color: var(--gold); color: var(--gold); }
+  .slot-section {
+    margin-bottom: 16px;
+  }
+  .slot-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    user-select: none;
+  }
+  .slot-header:hover { background: var(--card-hover); }
+  .slot-header .arrow { transition: transform 0.2s; font-size: 0.7em; color: var(--text-dim); }
+  .slot-header .arrow.open { transform: rotate(90deg); }
+  .slot-header .slot-name { font-weight: 600; color: var(--gold); }
+  .slot-header .slot-progress { margin-left: auto; font-size: 0.8em; color: var(--text-dim); }
+  .slot-header .slot-progress.done { color: var(--green); }
+  .slot-items {
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+  }
+  .item-row {
+    display: grid;
+    grid-template-columns: 30px 24px 1fr auto;
+    align-items: center;
+    padding: 8px 12px;
+    gap: 8px;
+    border-bottom: 1px solid #0a0a1a;
+    transition: background 0.15s;
+  }
+  .item-row:last-child { border-bottom: none; }
+  .item-row:hover { background: var(--card-hover); }
+  .item-row.checked { background: var(--checked-bg); border-color: var(--checked-border); }
+  .item-row.checked .item-name { text-decoration: line-through; opacity: 0.5; }
+  .item-row.checked .item-details { opacity: 0.4; }
+  .item-row.slot-done { opacity: 0.35; }
+  .item-row.slot-done:hover { opacity: 0.7; }
+  .rank {
+    font-weight: 700;
+    font-size: 0.85em;
+    text-align: center;
+    color: var(--text-dim);
+  }
+  .rank.r1 { color: var(--gold); font-size: 1.1em; }
+  .rank.r2 { color: #c0c0c0; font-size: 1.0em; }
+  .rank.r3 { color: #cd7f32; font-size: 0.9em; }
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--green);
+    cursor: pointer;
+  }
+  .item-info { min-width: 0; }
+  .item-name {
+    font-weight: 600;
+    font-size: 0.9em;
+    transition: opacity 0.2s;
+  }
+  .item-name a { color: inherit; text-decoration: none; }
+  .item-name a:hover { text-decoration: underline; }
+  .quality-epic { color: var(--epic); }
+  .quality-rare { color: var(--rare); }
+  .quality-uncommon { color: var(--uncommon); }
+  .item-source {
+    font-size: 0.75em;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .item-details {
+    text-align: right;
+    font-size: 0.75em;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+  .stats { color: var(--blue); }
+  .score { color: var(--text-dim); }
+  .tag {
+    display: inline-block;
+    font-size: 0.65em;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .tag-set { background: #4a1a6b; color: #d8b4fe; }
+  .tag-bis { background: #1b4a1b; color: #86efac; }
+  .tag-leather { background: #5a3a1a; color: #fbbf24; }
+  .tag-phase { background: #1a3a5a; color: #7dd3fc; }
+  .view-toggle {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .view-toggle button {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 16px;
+    cursor: pointer;
+    font-size: 0.8em;
+  }
+  .view-toggle button:first-child { border-radius: 6px 0 0 6px; }
+  .view-toggle button:last-child { border-radius: 0 6px 6px 0; }
+  .view-toggle button.active { border-color: var(--gold); color: var(--gold); }
+  .dungeon-section { margin-bottom: 12px; }
+  .dungeon-header {
+    padding: 8px 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+    color: var(--gold);
+    display: flex;
+    justify-content: space-between;
+  }
+  .dungeon-header .dungeon-progress { font-weight: 400; font-size: 0.85em; color: var(--text-dim); }
+  .dungeon-header .dungeon-progress.done { color: var(--green); }
+  .dungeon-items {
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+  }
+  .reset-btn {
+    display: block;
+    margin: 30px auto 10px;
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid #ef4444;
+    padding: 6px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8em;
+  }
+  .reset-btn:hover { background: #2a0a0a; }
+  .hidden { display: none; }
+  .item-name a { pointer-events: auto; }
+</style>
+<script>const whTooltips = {colorLinks: false, iconizeLinks: true, renameLinks: false};</script>
+<script src="https://wow.zamimg.com/js/tooltips.js"></script>
+</head>
+<body>
+
+<h1>BM Hunter Pre-Raid BiS</h1>
+<p class="subtitle">TBC Classic &mdash; check off items as you get them</p>
+
+<div class="progress-bar">
+  <span class="progress-text" id="progress-text">0 / 0 items</span>
+  <div class="bar-wrap"><div class="bar-fill" id="progress-fill" style="width:0%"></div></div>
+</div>
+
+<div class="view-toggle">
+  <button id="view-slot" class="active" onclick="setView('slot')">By Slot</button>
+  <button id="view-dungeon" onclick="setView('dungeon')">By Dungeon</button>
+  <button id="view-enchants" onclick="setView('enchants')">Enchants</button>
+  <button id="view-gems" onclick="setView('gems')">Gems</button>
+</div>
+
+<div class="filters" id="filters"></div>
+
+<div id="slot-view"></div>
+<div id="dungeon-view" class="hidden"></div>
+<div id="enchant-view" class="hidden"></div>
+<div id="gem-view" class="hidden"></div>
+
+<button class="reset-btn" onclick="resetAll()">Reset All Progress</button>
+
+<script>
+const ITEMS = [
+  // HEAD
+  {slot:"Head",rank:1,name:"Beast Lord Helm",wowheadId:28275,source:"Mechanar — Pathaleon the Calculator",dungeon:"The Mechanar",difficulty:"Normal",stats:"25 agi, 50 AP",score:151,quality:"rare",tags:["set","bis"]},
+  {slot:"Head",rank:2,name:"Stalker's Helmet of Second Sight",wowheadId:31107,source:"Quest — Shadowmoon Valley (Teron Gorefiend, I am...)",dungeon:null,difficulty:null,stats:"31 agi, 60 AP, 3 sockets",score:151,quality:"rare",tags:[]},
+  {slot:"Head",rank:3,name:"Mask of Veiled Death",wowheadId:31281,source:"World drop BoE",dungeon:null,difficulty:null,stats:"80 AP, 19 hit, 30 crit",score:142,quality:"rare",tags:["leather"]},
+
+  // NECK
+  {slot:"Neck",rank:1,name:"Choker of Vile Intent",wowheadId:29381,source:"Badge of Justice (25)",dungeon:null,difficulty:null,stats:"20 agi, 42 AP, 18 hit",score:109,quality:"epic",tags:["bis"]},
+  {slot:"Neck",rank:2,name:"Earthen Mark of Razing",wowheadId:25562,source:"Quest — Nagrand (Gurok the Usurper)",dungeon:null,difficulty:null,stats:"23 agi, 20 AP, 13 hit",score:86,quality:"rare",tags:[]},
+  {slot:"Neck",rank:3,name:"Jagged Bark Pendant",wowheadId:28343,source:"The Botanica",dungeon:"The Botanica",difficulty:"Normal",stats:"26 agi, 30 AP",score:82,quality:"rare",tags:[]},
+
+  // SHOULDERS
+  {slot:"Shoulders",rank:1,name:"Beast Lord Mantle",wowheadId:27801,source:"Steamvault — Warlord Kalithresh",dungeon:"The Steamvault",difficulty:"Normal",stats:"25 agi, 34 AP, 2 sockets",score:112,quality:"rare",tags:["set","bis"]},
+  {slot:"Shoulders",rank:2,name:"Expedition Scout's Epaulets",wowheadId:25790,source:"Quest — Zangarmarsh (Alliance)",dungeon:null,difficulty:null,stats:"25 agi, 50 AP, 24 hit",score:136,quality:"rare",tags:["leather"]},
+  {slot:"Shoulders",rank:3,name:"Wastewalker Shoulderpads",wowheadId:27797,source:"Heroic Auchenai Crypts",dungeon:"Auchenai Crypts",difficulty:"Heroic",stats:"25 agi, 34 AP, 16 hit",score:135,quality:"rare",tags:["leather"]},
+  {slot:"Shoulders",rank:4,name:"Mantle of Perenolde",wowheadId:27434,source:"Old Hillsbrad",dungeon:"Old Hillsbrad",difficulty:"Normal",stats:"23 hit, 23 crit, 20 AP",score:112,quality:"rare",tags:["leather"]},
+
+  // BACK
+  {slot:"Back",rank:1,name:"Vengeance Wrap",wowheadId:24259,source:"Crafted (Tailoring) BoE",dungeon:null,difficulty:null,stats:"52 AP, 23 crit, 1 socket",score:96,quality:"epic",tags:["bis"]},
+  {slot:"Back",rank:2,name:"Blood Knight War Cloak",wowheadId:29382,source:"Badge of Justice (25)",dungeon:null,difficulty:null,stats:"23 agi, 48 AP",score:94,quality:"epic",tags:[]},
+  {slot:"Back",rank:3,name:"Auchenai Death Shroud",wowheadId:27878,source:"Heroic Auchenai Crypts",dungeon:"Auchenai Crypts",difficulty:"Heroic",stats:"15 agi, 36 AP, 17 hit",score:92,quality:"rare",tags:[]},
+  {slot:"Back",rank:4,name:"Cloak of the Craft",wowheadId:31255,source:"Old Hillsbrad",dungeon:"Old Hillsbrad",difficulty:"Normal",stats:"25 agi, 20 AP, 13 hit",score:90,quality:"rare",tags:[]},
+  {slot:"Back",rank:5,name:"Cloak of the Inciter",wowheadId:27892,source:"Shadow Labyrinth — Blackheart",dungeon:"Shadow Labyrinth",difficulty:"Normal",stats:"30 AP, 16 hit, 18 crit",score:74,quality:"rare",tags:[]},
+
+  // CHEST
+  {slot:"Chest",rank:1,name:"Primalstrike Vest",wowheadId:29525,source:"Crafted (Elemental LW)",dungeon:null,difficulty:null,stats:"38 agi, 108 AP, 12 hit",score:202,quality:"epic",tags:["leather"]},
+  {slot:"Chest",rank:2,name:"Hauberk of Karabor",wowheadId:30933,source:"Quest — Shadowmoon Valley (Varedis Must Be Stopped)",dungeon:null,difficulty:null,stats:"25 agi, 90 AP, 12 hit",score:158,quality:"rare",tags:["leather"]},
+  {slot:"Chest",rank:3,name:"Ebon Netherscale Breastplate",wowheadId:29515,source:"Crafted (Dragonscale LW)",dungeon:null,difficulty:null,stats:"80 AP, 31 crit, 3 sockets",score:150,quality:"epic",tags:[]},
+  {slot:"Chest",rank:4,name:"Beast Lord Cuirass",wowheadId:28228,source:"Botanica — Warp Splinter",dungeon:"The Botanica",difficulty:"Normal",stats:"20 agi, 40 AP, 3 sockets",score:128,quality:"rare",tags:["set","bis"]},
+
+  // WRIST
+  {slot:"Wrist",rank:1,name:"Primalstrike Bracers",wowheadId:29527,source:"Crafted (Elemental LW)",dungeon:null,difficulty:null,stats:"15 agi, 64 AP",score:94,quality:"epic",tags:["bis","leather"]},
+  {slot:"Wrist",rank:2,name:"Nightfall Wristguards",wowheadId:29246,source:"Heroic Old Hillsbrad — Epoch Hunter",dungeon:"Old Hillsbrad",difficulty:"Heroic",stats:"24 agi, 46 AP",score:94,quality:"epic",tags:["leather"]},
+  {slot:"Wrist",rank:3,name:"Felstalker Bracers",wowheadId:25697,source:"Crafted (LW)",dungeon:null,difficulty:null,stats:"18 agi, 39 AP, 1 socket",score:83,quality:"rare",tags:[]},
+  {slot:"Wrist",rank:4,name:"Ebon Netherscale Bracers",wowheadId:29517,source:"Crafted (Dragonscale LW)",dungeon:null,difficulty:null,stats:"39 AP, 17 crit, 1 socket",score:74,quality:"epic",tags:[]},
+
+  // HANDS
+  {slot:"Hands",rank:1,name:"Beast Lord Handguards",wowheadId:27474,source:"Shattered Halls — Warchief Kargath",dungeon:"Shattered Halls",difficulty:"Normal",stats:"25 agi, 34 AP, 2 sockets",score:113,quality:"rare",tags:["set","bis"]},
+  {slot:"Hands",rank:2,name:"Gloves of the Nether-Stalker",wowheadId:30003,source:"Quest — Netherstorm (Dealing with the Overmaster)",dungeon:null,difficulty:null,stats:"16 agi, 60 AP, 8 hit",score:104,quality:"uncommon",tags:["leather"]},
+
+  // WAIST
+  {slot:"Waist",rank:1,name:"Primalstrike Belt",wowheadId:29526,source:"Crafted (Elemental LW)",dungeon:null,difficulty:null,stats:"20 agi, 84 AP",score:124,quality:"epic",tags:["bis","leather"]},
+  {slot:"Waist",rank:2,name:"Dunewind Sash",wowheadId:27760,source:"Heroic Underbog — Ghaz'an",dungeon:"Underbog",difficulty:"Heroic",stats:"21 agi, 50 AP, 2 sockets",score:122,quality:"rare",tags:["leather"]},
+  {slot:"Waist",rank:3,name:"Felstalker Belt",wowheadId:25695,source:"Crafted (LW)",dungeon:null,difficulty:null,stats:"18 agi, 50 AP, 2 sockets",score:110,quality:"rare",tags:[]},
+  {slot:"Waist",rank:4,name:"Ebon Netherscale Belt",wowheadId:29516,source:"Crafted (Dragonscale LW)",dungeon:null,difficulty:null,stats:"48 AP, 22 crit, 2 sockets",score:98,quality:"epic",tags:[]},
+
+  // LEGS
+  {slot:"Legs",rank:1,name:"Midnight Legguards",wowheadId:30538,source:"Heroic Slave Pens — Quagmirran",dungeon:"Slave Pens",difficulty:"Heroic",stats:"64 AP, 17 hit, 27 crit, 3 sockets",score:165,quality:"epic",tags:["leather"]},
+  {slot:"Legs",rank:2,name:"Wastewalker Leggings",wowheadId:27837,source:"Heroic Mana-Tombs — Shaffar",dungeon:"Mana-Tombs",difficulty:"Heroic",stats:"31 agi, 28 AP, 19 hit, 3 sockets",score:159,quality:"rare",tags:["leather"]},
+  {slot:"Legs",rank:3,name:"Beast Lord Leggings",wowheadId:27874,source:"Steamvault — Warlord Kalithresh",dungeon:"The Steamvault",difficulty:"Normal",stats:"30 agi, 52 AP",score:112,quality:"rare",tags:["set","bis"]},
+
+  // FEET
+  {slot:"Feet",rank:1,name:"Fel Leather Boots",wowheadId:25686,source:"Crafted (LW)",dungeon:null,difficulty:null,stats:"36 AP, 25 hit, 17 crit, 2 sockets",score:126,quality:"rare",tags:["bis","leather"]},
+  {slot:"Feet",rank:2,name:"The Master's Treads",wowheadId:31288,source:"World drop BoE",dungeon:null,difficulty:null,stats:"24 agi, 48 AP, 16 hit",score:120,quality:"epic",tags:["leather"]},
+  {slot:"Feet",rank:3,name:"Farahlite Studded Boots",wowheadId:30401,source:"Quest — Netherstorm (Cutting Your Teeth)",dungeon:null,difficulty:null,stats:"16 agi, 56 AP, 16 crit",score:106,quality:"rare",tags:["leather"]},
+  {slot:"Feet",rank:4,name:"Boots of the Endless Hunt",wowheadId:29262,source:"Heroic Botanica — Warp Splinter",dungeon:"The Botanica",difficulty:"Heroic",stats:"26 agi, 48 AP",score:100,quality:"rare",tags:[]},
+
+  // RINGS
+  {slot:"Ring",rank:1,name:"Kaylaan's Signet",wowheadId:30860,source:"Quest — Shadowmoon Valley (Aldor)",dungeon:null,difficulty:null,stats:"15 agi, 50 AP, 10 hit",score:95,quality:"rare",tags:["bis"]},
+  {slot:"Ring",rank:1,name:"Slayer's Mark of the Redemption",wowheadId:31077,source:"Quest — Shadowmoon Valley (Scryer)",dungeon:null,difficulty:null,stats:"15 agi, 50 AP, 10 hit",score:95,quality:"rare",tags:["bis"]},
+  {slot:"Ring",rank:3,name:"Band of Anguish",wowheadId:30973,source:"Quest — Shadowmoon Valley (Zuluhed the Whacked)",dungeon:null,difficulty:null,stats:"13 agi, 50 AP, 10 hit",score:91,quality:"rare",tags:[]},
+  {slot:"Ring",rank:4,name:"Ravenclaw Band",wowheadId:27925,source:"Sethekk Halls — Talon King Ikiss",dungeon:"Sethekk Halls",difficulty:"Normal",stats:"20 agi, 30 AP, 13 hit",score:90,quality:"rare",tags:[]},
+
+  // TRINKETS
+  {slot:"Trinket",rank:1,name:"Bloodlust Brooch",wowheadId:29383,source:"Badge of Justice (41)",dungeon:null,difficulty:null,stats:"72 AP + Use: 278 AP/20s",score:118,quality:"epic",tags:["bis"]},
+  {slot:"Trinket",rank:2,name:"Hourglass of the Unraveller",wowheadId:28034,source:"Black Morass — Temporus",dungeon:"The Black Morass",difficulty:"Normal",stats:"32 crit + Proc: 300 AP",score:95,quality:"rare",tags:[]},
+  {slot:"Trinket",rank:3,name:"Abacus of Violent Odds",wowheadId:28288,source:"Mechanar — Pathaleon",dungeon:"The Mechanar",difficulty:"Normal",stats:"64 AP + Use: 260 haste",score:90,quality:"rare",tags:[]},
+  {slot:"Trinket",rank:4,name:"Bladefist's Breadth",wowheadId:28041,source:"Quest — Hellfire Peninsula (Overlord)",dungeon:null,difficulty:null,stats:"26 crit + Use: 200 AP",score:51,quality:"rare",tags:[]},
+
+  // MELEE MH
+  {slot:"Main Hand",rank:1,name:"Guile of Khoraazi",wowheadId:29121,source:"Consortium Exalted",dungeon:null,difficulty:null,stats:"19 agi, 38 AP",score:76,quality:"rare",tags:["bis"]},
+  {slot:"Main Hand",rank:2,name:"Claw of the Watcher",wowheadId:27846,source:"Auchenai Crypts — Shirrak",dungeon:"Auchenai Crypts",difficulty:"Normal",stats:"12 crit, 24 AP, 2 sockets",score:65,quality:"rare",tags:[]},
+  {slot:"Main Hand",rank:3,name:"Stellaris",wowheadId:28263,source:"Mechanar",dungeon:"The Mechanar",difficulty:"Normal",stats:"21 agi, 22 AP",score:64,quality:"rare",tags:[]},
+
+  // MELEE OH
+  {slot:"Off-Hand",rank:1,name:"Ripfang Paw",wowheadId:30277,source:"Quest — Blade's Edge Mountains (Declawing Doomclaw)",dungeon:null,difficulty:null,stats:"10 agi, 33 AP",score:53,quality:"rare",tags:["bis"]},
+  {slot:"Off-Hand",rank:2,name:"Stormreaver Warblades",wowheadId:28315,source:"Botanica — Freywinn",dungeon:"The Botanica",difficulty:"Normal",stats:"21 crit, 22 AP",score:45,quality:"rare",tags:[]},
+
+  // 2H MELEE
+  {slot:"Two-Hand",rank:1,name:"Sonic Spear",wowheadId:27903,source:"Shadow Lab — Murmur",dungeon:"Shadow Labyrinth",difficulty:"Normal",stats:"35 agi, 62 AP, 24 hit, 26 crit",score:197,quality:"rare",tags:["bis"]},
+  {slot:"Two-Hand",rank:2,name:"Mooncleaver",wowheadId:28435,source:"Crafted (Master Axesmith)",dungeon:null,difficulty:null,stats:"52 crit, 106 AP, 118.7 DPS",score:163,quality:"epic",tags:[]},
+  {slot:"Two-Hand",rank:3,name:"Quantum Blade",wowheadId:29356,source:"Heroic Black Morass — Aeonus",dungeon:"The Black Morass",difficulty:"Heroic",stats:"30 crit, 103 AP, 108.6 DPS",score:136,quality:"epic",tags:[]},
+  {slot:"Two-Hand",rank:4,name:"Terokk's Quill",wowheadId:29329,source:"Quest — Terokkar Forest (Terokk's Legacy)",dungeon:null,difficulty:null,stats:"54 agi, 93.3 DPS",score:108,quality:"rare",tags:[]},
+
+  // RANGED
+  {slot:"Ranged",rank:1,name:"Wrathtide Longbow",wowheadId:29351,source:"Heroic Steamvault — Kalithresh",dungeon:"The Steamvault",difficulty:"Heroic",stats:"14 agi, 28 AP, 3.00 speed, 75.5 DPS",score:null,quality:"rare",tags:["bis"]},
+  {slot:"Ranged",rank:2,name:"Veteran's Musket",wowheadId:29151,source:"Honor Hold Exalted (Alliance)",dungeon:null,difficulty:null,stats:"12 agi, 22 AP, 11 hit, 2.70 speed",score:null,quality:"rare",tags:[]},
+  {slot:"Ranged",rank:3,name:"Valanos' Longbow",wowheadId:31303,source:"World drop BoE",dungeon:null,difficulty:null,stats:"10 crit, 22 AP, 2.80 speed",score:null,quality:"rare",tags:[]},
+];
+
+const ENCHANTS = [
+  {slot:"Head",rank:1,name:"Glyph of Ferocity",wowheadId:29192,isSpell:false,source:"Cenarion Expedition — Revered",stats:"+34 AP, +16 Hit",quality:"rare",tags:["bis"]},
+
+  {slot:"Shoulders",rank:1,name:"Greater Inscription of Vengeance",wowheadId:28888,isSpell:false,source:"Aldor — Exalted",stats:"+30 AP, +10 Crit",quality:"rare",tags:["bis"]},
+  {slot:"Shoulders",rank:2,name:"Greater Inscription of the Blade",wowheadId:28886,isSpell:false,source:"Scryers — Exalted",stats:"+20 AP, +15 Crit",quality:"rare",tags:[]},
+  {slot:"Shoulders",rank:3,name:"Inscription of Vengeance",wowheadId:28909,isSpell:false,source:"Aldor — Honored",stats:"+15 AP, +5 Crit",quality:"uncommon",tags:[]},
+
+  {slot:"Back",rank:1,name:"Enchant Cloak - Greater Agility",wowheadId:34004,isSpell:true,source:"Enchanting",stats:"+12 Agility",quality:"rare",tags:["bis"]},
+
+  {slot:"Chest",rank:1,name:"Enchant Chest - Exceptional Stats",wowheadId:27960,isSpell:true,source:"Enchanting (345)",stats:"+6 All Stats",quality:"rare",tags:["bis"]},
+  {slot:"Chest",rank:2,name:"Enchant Chest - Greater Stats",wowheadId:27957,isSpell:true,source:"Enchanting",stats:"+4 All Stats",quality:"uncommon",tags:[]},
+
+  {slot:"Wrist",rank:1,name:"Enchant Bracer - Assault",wowheadId:34002,isSpell:true,source:"Enchanting (cheap)",stats:"+24 AP",quality:"rare",tags:["bis"]},
+
+  {slot:"Hands",rank:1,name:"Enchant Gloves - Superior Agility",wowheadId:25080,isSpell:true,source:"Enchanting (300)",stats:"+15 Agility",quality:"rare",tags:["bis"]},
+  {slot:"Hands",rank:2,name:"Enchant Gloves - Assault",wowheadId:33996,isSpell:true,source:"Enchanting (cheap)",stats:"+26 AP",quality:"uncommon",tags:[]},
+
+  {slot:"Legs",rank:1,name:"Nethercobra Leg Armor",wowheadId:29535,isSpell:false,source:"Leatherworking (365)",stats:"+50 AP, +12 Crit",quality:"epic",tags:["bis"]},
+  {slot:"Legs",rank:2,name:"Cobrahide Leg Armor",wowheadId:29533,isSpell:false,source:"Leatherworking (335)",stats:"+40 AP, +10 Crit",quality:"rare",tags:[]},
+
+  {slot:"Feet",rank:1,name:"Enchant Boots - Cat's Swiftness",wowheadId:34007,isSpell:true,source:"Enchanting (world drop formula)",stats:"+6 Agi, +8% Move Speed",quality:"epic",tags:["bis"]},
+  {slot:"Feet",rank:2,name:"Enchant Boots - Dexterity",wowheadId:27951,isSpell:true,source:"Enchanting",stats:"+12 Agility",quality:"rare",tags:[]},
+
+  {slot:"Ring",rank:1,name:"Enchant Ring - Stats",wowheadId:27927,isSpell:true,source:"Enchanting (375) — self only",stats:"+4 All Stats per ring",quality:"rare",tags:["bis"]},
+
+  {slot:"Melee 1H",rank:1,name:"Enchant Weapon - Greater Agility",wowheadId:42620,isSpell:true,source:"Enchanting (Violet Eye Exalted)",stats:"+20 Agility per weapon",quality:"epic",tags:["bis"]},
+
+  {slot:"Melee 2H",rank:1,name:"Enchant 2H Weapon - Major Agility",wowheadId:27977,isSpell:true,source:"Enchanting",stats:"+35 Agility",quality:"rare",tags:["bis"]},
+
+  {slot:"Ranged",rank:1,name:"Stabilized Eternium Scope",wowheadId:23766,isSpell:false,source:"Engineering (375), drops in Karazhan",stats:"+28 Crit Rating",quality:"epic",tags:["bis"]},
+  {slot:"Ranged",rank:2,name:"Khorium Scope",wowheadId:23765,isSpell:false,source:"Engineering (360)",stats:"+12 Damage",quality:"rare",tags:[]},
+];
+
+const ENCHANT_SLOT_ORDER = ["Head","Shoulders","Back","Chest","Wrist","Hands","Legs","Feet","Ring","Melee 1H","Melee 2H","Ranged"];
+
+const GEMS = [
+  // META
+  {slot:"Meta",rank:1,name:"Relentless Earthstorm Diamond",wowheadId:32409,source:"JC — Consortium Exalted",stats:"+12 Agi, +3% Crit Damage",quality:"epic",tags:["bis"],note:"Req: 2 Red, 2 Yellow, 2 Blue"},
+  {slot:"Meta",rank:2,name:"Swift Skyfire Diamond",wowheadId:25894,source:"JC",stats:"+24 AP, +8% Move Speed",quality:"epic",tags:[],note:"If you want run speed"},
+  {slot:"Meta",rank:3,name:"Thundering Skyfire Diamond",wowheadId:32410,source:"JC",stats:"Proc: +240 Haste/6s",quality:"epic",tags:[],note:"Niche"},
+
+  // RED
+  {slot:"Red",rank:1,name:"Delicate Crimson Spinel",wowheadId:32194,source:"JC — BT/Hyjal",stats:"+10 Agility",quality:"epic",tags:["bis","P3+"]},
+  {slot:"Red",rank:2,name:"Delicate Living Ruby",wowheadId:24028,source:"JC (350)",stats:"+8 Agility",quality:"rare",tags:["bis","P1-2"]},
+  {slot:"Red",rank:3,name:"Delicate Blood Garnet",wowheadId:23097,source:"JC (325) — budget",stats:"+6 Agility",quality:"uncommon",tags:[]},
+
+  // ORANGE (Red+Yellow)
+  {slot:"Orange",rank:1,name:"Glinting Pyrestone",wowheadId:32220,source:"JC — BT/Hyjal",stats:"+5 Agi, +5 Hit",quality:"epic",tags:["bis","P3+"],note:"Use if under hit cap"},
+  {slot:"Orange",rank:2,name:"Glinting Noble Topaz",wowheadId:24061,source:"JC (350)",stats:"+4 Agi, +4 Hit",quality:"rare",tags:["bis","P1-2"],note:"Use if under hit cap"},
+  {slot:"Orange",rank:3,name:"Wicked Pyrestone",wowheadId:32222,source:"JC — BT/Hyjal",stats:"+5 Crit, +10 AP",quality:"epic",tags:["P3+"],note:"If hit capped"},
+  {slot:"Orange",rank:4,name:"Wicked Noble Topaz",wowheadId:31868,source:"JC (world drop design)",stats:"+4 Crit, +8 AP",quality:"rare",tags:["P1-2"],note:"If hit capped"},
+
+  // YELLOW
+  {slot:"Yellow",rank:1,name:"Smooth Lionseye",wowheadId:32205,source:"JC — BT/Hyjal",stats:"+10 Crit Rating",quality:"epic",tags:["P3+"]},
+  {slot:"Yellow",rank:2,name:"Rigid Lionseye",wowheadId:32206,source:"JC — BT/Hyjal",stats:"+10 Hit Rating",quality:"epic",tags:["P3+"],note:"If under hit cap"},
+  {slot:"Yellow",rank:3,name:"Smooth Dawnstone",wowheadId:24048,source:"JC (350)",stats:"+8 Crit Rating",quality:"rare",tags:["P1-2"]},
+  {slot:"Yellow",rank:4,name:"Rigid Dawnstone",wowheadId:24051,source:"JC (350)",stats:"+8 Hit Rating",quality:"rare",tags:["P1-2"],note:"If under hit cap"},
+
+  // PURPLE (Red+Blue)
+  {slot:"Purple",rank:1,name:"Shifting Shadowsong Amethyst",wowheadId:32212,source:"JC — Hyjal Summit",stats:"+5 Agi, +7 Stam",quality:"epic",tags:["bis","P3+"],note:"Best blue filler"},
+  {slot:"Purple",rank:2,name:"Shifting Nightseye",wowheadId:24055,source:"JC (350)",stats:"+4 Agi, +6 Stam",quality:"rare",tags:["bis","P1-2"],note:"Best blue filler"},
+
+  // GREEN (Yellow+Blue)
+  {slot:"Green",rank:1,name:"Jagged Seaspray Emerald",wowheadId:32226,source:"JC — BT/Hyjal",stats:"+5 Crit, +7 Stam",quality:"epic",tags:["P3+"],note:"Counts as Yellow+Blue for meta"},
+  {slot:"Green",rank:2,name:"Jagged Talasite",wowheadId:24067,source:"JC (350)",stats:"+4 Crit, +6 Stam",quality:"rare",tags:["P1-2"],note:"Counts as Yellow+Blue for meta"},
+];
+
+const GEM_SLOT_ORDER = ["Meta","Red","Orange","Yellow","Purple","Green"];
+
+const SLOT_ORDER = ["Head","Neck","Shoulders","Back","Chest","Wrist","Hands","Waist","Legs","Feet","Ring","Trinket","Main Hand","Off-Hand","Two-Hand","Ranged"];
+
+function getSourceType(item) {
+  if (item.dungeon) return "dungeon";
+  const s = item.source.toLowerCase();
+  if (s.startsWith("quest")) return "quest";
+  if (s.startsWith("crafted")) return "crafted";
+  if (s.includes("world drop") || s.includes("boe")) return "boe";
+  if (s.includes("badge of justice")) return "badges";
+  if (s.includes("exalted") || s.includes("revered") || s.includes("honored")) return "reputation";
+  return "other";
+}
+
+const STORAGE_KEY = "bis-tracker-checked";
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function save(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+let state = load();
+let currentView = "slot";
+let activeFilter = "all";
+
+function itemKey(item) { return item.name; }
+
+function isChecked(item) { return !!state[itemKey(item)]; }
+
+function toggle(item) {
+  const k = itemKey(item);
+  if (state[k]) delete state[k]; else state[k] = true;
+  save(state);
+  render();
+}
+
+function resetAll() {
+  if (!confirm("Reset all progress?")) return;
+  state = {};
+  save(state);
+  render();
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById("view-slot").classList.toggle("active", v === "slot");
+  document.getElementById("view-dungeon").classList.toggle("active", v === "dungeon");
+  document.getElementById("view-enchants").classList.toggle("active", v === "enchants");
+  document.getElementById("view-gems").classList.toggle("active", v === "gems");
+  document.getElementById("slot-view").classList.toggle("hidden", v !== "slot");
+  document.getElementById("dungeon-view").classList.toggle("hidden", v !== "dungeon");
+  document.getElementById("enchant-view").classList.toggle("hidden", v !== "enchants");
+  document.getElementById("gem-view").classList.toggle("hidden", v !== "gems");
+  document.getElementById("filters").classList.toggle("hidden", v === "enchants" || v === "gems");
+}
+
+function setFilter(f) {
+  activeFilter = f;
+  document.querySelectorAll(".filters button").forEach(b => b.classList.toggle("active", b.dataset.filter === f));
+  render();
+}
+
+const DW_SLOTS = ["Main Hand", "Off-Hand"];
+const TH_SLOT = "Two-Hand";
+
+function has2H() { return ITEMS.some(i => i.slot === TH_SLOT && isChecked(i)); }
+function hasDW() { return ITEMS.some(i => DW_SLOTS.includes(i.slot) && isChecked(i)); }
+
+function slotHasChecked(slot) {
+  return ITEMS.some(i => i.slot === slot && isChecked(i));
+}
+
+function isWeaponExcluded(item) {
+  if (DW_SLOTS.includes(item.slot) && has2H()) return true;
+  if (item.slot === TH_SLOT && hasDW()) return true;
+  return false;
+}
+
+function makeItemRow(item) {
+  const checked = isChecked(item);
+  const excluded = isWeaponExcluded(item);
+  const dimmed = !checked && (slotHasChecked(item.slot) || excluded);
+  const row = document.createElement("div");
+  row.className = "item-row" + (checked ? " checked" : "") + (dimmed ? " slot-done" : "");
+
+  const rankClass = item.rank <= 3 ? ` r${item.rank}` : "";
+  const rankLabel = item.rank === 1 ? "★" : item.rank === 2 ? "★" : item.rank === 3 ? "★" : `#${item.rank}`;
+  let tags = "";
+  if (item.tags.includes("set")) tags += '<span class="tag tag-set">SET</span>';
+  if (item.tags.includes("bis")) tags += '<span class="tag tag-bis">BiS</span>';
+  if (item.tags.includes("leather")) tags += '<span class="tag tag-leather">Leather</span>';
+
+  row.innerHTML = `
+    <span class="rank${rankClass}">${rankLabel}</span>
+    <input type="checkbox" ${checked ? "checked" : ""}>
+    <div class="item-info">
+      <div class="item-name quality-${item.quality}"><a href="https://www.wowhead.com/tbc/item=${item.wowheadId}" target="_blank" rel="noopener">${item.name}</a>${tags}</div>
+      <div class="item-source">${item.source}</div>
+    </div>
+    <div class="item-details">
+      <div class="stats">${item.stats}</div>
+      ${item.score ? `<div class="score">Score: ${item.score}</div>` : ""}
+    </div>
+  `;
+  row.querySelector("input").addEventListener("change", () => toggle(item));
+  return row;
+}
+
+function renderSlotView() {
+  const container = document.getElementById("slot-view");
+  container.innerHTML = "";
+
+  for (const slot of SLOT_ORDER) {
+    let items = ITEMS.filter(i => i.slot === slot);
+    if (activeFilter === "dungeon") items = items.filter(i => i.dungeon);
+    else if (activeFilter === "normal") items = items.filter(i => i.difficulty === "Normal");
+    else if (activeFilter === "heroic") items = items.filter(i => i.difficulty === "Heroic");
+    else if (activeFilter === "nondungeon") items = items.filter(i => !i.dungeon);
+    else if (activeFilter === "quest") items = items.filter(i => getSourceType(i) === "quest");
+    else if (activeFilter === "reputation") items = items.filter(i => getSourceType(i) === "reputation");
+    else if (activeFilter === "boe") items = items.filter(i => getSourceType(i) === "boe");
+    else if (activeFilter === "crafted") items = items.filter(i => getSourceType(i) === "crafted");
+    else if (activeFilter === "badges") items = items.filter(i => getSourceType(i) === "badges");
+    else if (activeFilter === "unchecked") items = items.filter(i => !isChecked(i));
+    if (items.length === 0) continue;
+
+    const checkedCount = items.filter(i => isChecked(i)).length;
+    const section = document.createElement("div");
+    section.className = "slot-section";
+
+    const allDone = checkedCount > 0 && checkedCount === items.length;
+    const header = document.createElement("div");
+    header.className = "slot-header";
+    header.innerHTML = `
+      <span class="arrow open">&#9654;</span>
+      <span class="slot-name">${slot}</span>
+      <span class="slot-progress${allDone ? " done" : ""}">${checkedCount}/${items.length}</span>
+    `;
+
+    const itemsDiv = document.createElement("div");
+    itemsDiv.className = "slot-items";
+    items.forEach(item => itemsDiv.appendChild(makeItemRow(item)));
+
+    header.addEventListener("click", () => {
+      const open = header.querySelector(".arrow").classList.toggle("open");
+      itemsDiv.classList.toggle("hidden", !open);
+    });
+
+    section.appendChild(header);
+    section.appendChild(itemsDiv);
+    container.appendChild(section);
+  }
+}
+
+function renderDungeonView() {
+  const container = document.getElementById("dungeon-view");
+  container.innerHTML = "";
+
+  let filtered = ITEMS.filter(i => i.dungeon);
+  if (activeFilter === "normal") filtered = filtered.filter(i => i.difficulty === "Normal");
+  else if (activeFilter === "heroic") filtered = filtered.filter(i => i.difficulty === "Heroic");
+  else if (activeFilter === "unchecked") filtered = filtered.filter(i => !isChecked(i));
+
+  const dungeons = {};
+  filtered.forEach(item => {
+    const key = item.dungeon;
+    if (!dungeons[key]) dungeons[key] = [];
+    dungeons[key].push(item);
+  });
+
+  const dungeonOrder = ["The Mechanar","The Steamvault","The Botanica","Shattered Halls","Old Hillsbrad","Shadow Labyrinth","Sethekk Halls","The Black Morass","Auchenai Crypts","Slave Pens","Underbog","Mana-Tombs"];
+
+  for (const dName of dungeonOrder) {
+    const items = dungeons[dName];
+    if (!items) continue;
+    const checkedCount = items.filter(i => isChecked(i)).length;
+    const allDone = checkedCount === items.length;
+
+    const section = document.createElement("div");
+    section.className = "dungeon-section";
+
+    const header = document.createElement("div");
+    header.className = "dungeon-header";
+    const difficulties = [...new Set(items.map(i => i.difficulty))].join(" + ");
+    header.innerHTML = `
+      <span>${dName} <span style="color:var(--text-dim);font-weight:400;font-size:0.85em">(${difficulties})</span></span>
+      <span class="dungeon-progress${allDone ? " done" : ""}">${checkedCount}/${items.length}</span>
+    `;
+
+    const itemsDiv = document.createElement("div");
+    itemsDiv.className = "dungeon-items";
+    items.forEach(item => itemsDiv.appendChild(makeItemRow(item)));
+
+    section.appendChild(header);
+    section.appendChild(itemsDiv);
+    container.appendChild(section);
+  }
+}
+
+function isEnchantExcluded(ench) {
+  if (ench.slot === "Melee 1H" && has2H()) return true;
+  if (ench.slot === "Melee 2H" && hasDW()) return true;
+  return false;
+}
+
+function makeEnchantRow(ench) {
+  const checked = isChecked(ench);
+  const excluded = isEnchantExcluded(ench);
+  const slotDone = !checked && (ENCHANTS.some(e => e.slot === ench.slot && isChecked(e)) || excluded);
+  const row = document.createElement("div");
+  row.className = "item-row" + (checked ? " checked" : "") + (slotDone ? " slot-done" : "");
+
+  const rankClass = ench.rank <= 3 ? ` r${ench.rank}` : "";
+  const rankLabel = ench.rank === 1 ? "★" : ench.rank === 2 ? "★" : ench.rank === 3 ? "★" : `#${ench.rank}`;
+  let tags = "";
+  if (ench.tags.includes("bis")) tags += '<span class="tag tag-bis">BiS</span>';
+
+  const url = ench.isSpell
+    ? `https://www.wowhead.com/tbc/spell=${ench.wowheadId}`
+    : `https://www.wowhead.com/tbc/item=${ench.wowheadId}`;
+
+  row.innerHTML = `
+    <span class="rank${rankClass}">${rankLabel}</span>
+    <input type="checkbox" ${checked ? "checked" : ""}>
+    <div class="item-info">
+      <div class="item-name quality-${ench.quality}"><a href="${url}" target="_blank" rel="noopener">${ench.name}</a>${tags}</div>
+      <div class="item-source">${ench.source}</div>
+    </div>
+    <div class="item-details">
+      <div class="stats">${ench.stats}</div>
+    </div>
+  `;
+  row.querySelector("input").addEventListener("change", () => toggle(ench));
+  return row;
+}
+
+function renderEnchantView() {
+  const container = document.getElementById("enchant-view");
+  container.innerHTML = "";
+
+  for (const slot of ENCHANT_SLOT_ORDER) {
+    const enchants = ENCHANTS.filter(e => e.slot === slot);
+    if (enchants.length === 0) continue;
+
+    const checkedCount = enchants.filter(e => isChecked(e)).length;
+    const section = document.createElement("div");
+    section.className = "slot-section";
+
+    const allDone = checkedCount > 0;
+    const header = document.createElement("div");
+    header.className = "slot-header";
+    header.innerHTML = `
+      <span class="arrow open">&#9654;</span>
+      <span class="slot-name">${slot}</span>
+      <span class="slot-progress${allDone ? " done" : ""}">${checkedCount}/${enchants.length}</span>
+    `;
+
+    const itemsDiv = document.createElement("div");
+    itemsDiv.className = "slot-items";
+    enchants.forEach(e => itemsDiv.appendChild(makeEnchantRow(e)));
+
+    header.addEventListener("click", () => {
+      const open = header.querySelector(".arrow").classList.toggle("open");
+      itemsDiv.classList.toggle("hidden", !open);
+    });
+
+    section.appendChild(header);
+    section.appendChild(itemsDiv);
+    container.appendChild(section);
+  }
+}
+
+function makeGemRow(gem) {
+  const checked = isChecked(gem);
+  const slotDone = !checked && GEMS.some(g => g.slot === gem.slot && isChecked(g));
+  const row = document.createElement("div");
+  row.className = "item-row" + (checked ? " checked" : "") + (slotDone ? " slot-done" : "");
+
+  const rankClass = gem.rank <= 3 ? ` r${gem.rank}` : "";
+  const rankLabel = gem.rank === 1 ? "★" : gem.rank === 2 ? "★" : gem.rank === 3 ? "★" : `#${gem.rank}`;
+  let tags = "";
+  if (gem.tags.includes("bis")) tags += '<span class="tag tag-bis">BiS</span>';
+  for (const t of gem.tags) {
+    if (t.startsWith("P")) tags += `<span class="tag tag-phase">${t}</span>`;
+  }
+
+  row.innerHTML = `
+    <span class="rank${rankClass}">${rankLabel}</span>
+    <input type="checkbox" ${checked ? "checked" : ""}>
+    <div class="item-info">
+      <div class="item-name quality-${gem.quality}"><a href="https://www.wowhead.com/tbc/item=${gem.wowheadId}" target="_blank" rel="noopener">${gem.name}</a>${tags}</div>
+      <div class="item-source">${gem.source}${gem.note ? " — " + gem.note : ""}</div>
+    </div>
+    <div class="item-details">
+      <div class="stats">${gem.stats}</div>
+    </div>
+  `;
+  row.querySelector("input").addEventListener("change", () => toggle(gem));
+  return row;
+}
+
+function renderGemView() {
+  const container = document.getElementById("gem-view");
+  container.innerHTML = "";
+
+  for (const slot of GEM_SLOT_ORDER) {
+    const gems = GEMS.filter(g => g.slot === slot);
+    if (gems.length === 0) continue;
+
+    const checkedCount = gems.filter(g => isChecked(g)).length;
+    const section = document.createElement("div");
+    section.className = "slot-section";
+
+    const allDone = checkedCount > 0;
+    const header = document.createElement("div");
+    header.className = "slot-header";
+    header.innerHTML = `
+      <span class="arrow open">&#9654;</span>
+      <span class="slot-name">${slot}</span>
+      <span class="slot-progress${allDone ? " done" : ""}">${checkedCount}/${gems.length}</span>
+    `;
+
+    const itemsDiv = document.createElement("div");
+    itemsDiv.className = "slot-items";
+    gems.forEach(g => itemsDiv.appendChild(makeGemRow(g)));
+
+    header.addEventListener("click", () => {
+      const open = header.querySelector(".arrow").classList.toggle("open");
+      itemsDiv.classList.toggle("hidden", !open);
+    });
+
+    section.appendChild(header);
+    section.appendChild(itemsDiv);
+    container.appendChild(section);
+  }
+}
+
+function updateProgress() {
+  const allItems = [...ITEMS, ...ENCHANTS, ...GEMS];
+  const total = allItems.length;
+  const checked = allItems.filter(i => isChecked(i)).length;
+  const pct = total ? Math.round(checked / total * 100) : 0;
+  document.getElementById("progress-text").textContent = `${checked} / ${total} items (${pct}%)`;
+  document.getElementById("progress-fill").style.width = pct + "%";
+}
+
+function render() {
+  renderSlotView();
+  renderDungeonView();
+  renderEnchantView();
+  renderGemView();
+  updateProgress();
+  // Re-scan DOM for new Wowhead links
+  if (typeof $WowheadPower !== "undefined") $WowheadPower.refreshLinks();
+}
+
+// Build filters
+const filtersDiv = document.getElementById("filters");
+[["all","All"],["dungeon","Dungeon Only"],["normal","Normal"],["heroic","Heroic"],["nondungeon","Non-Dungeon"],["quest","Quest"],["reputation","Reputation"],["boe","BoE / World Drop"],["crafted","Crafted"],["badges","Badges"],["unchecked","Missing"]].forEach(([key, label]) => {
+  const btn = document.createElement("button");
+  btn.textContent = label;
+  btn.dataset.filter = key;
+  if (key === "all") btn.classList.add("active");
+  btn.addEventListener("click", () => setFilter(key));
+  filtersDiv.appendChild(btn);
+});
+
+render();
+</script>
+</body>
+</html>

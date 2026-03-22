@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BM Hunter TBC DPS Simulator</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --card: #16213e;
+    --card-hover: #1a2745;
+    --border: #0f3460;
+    --text: #e0e0e0;
+    --text-dim: #8888aa;
+    --gold: #ffd700;
+    --green: #4caf50;
+    --auto-color: #ffffff;
+    --steady-color: #ffd700;
+    --arcane-color: #5090d0;
+    --multi-color: #ff69b4;
+    --kc-color: #ff8c00;
+    --pet-color: #4caf50;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  h1 {
+    text-align: center;
+    color: var(--gold);
+    margin-bottom: 4px;
+    font-size: 1.6em;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    font-size: 0.85em;
+  }
+  h2 {
+    color: var(--gold);
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+  h3 {
+    color: var(--gold);
+    font-size: 0.95em;
+    margin-bottom: 8px;
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .presets button {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.15s;
+  }
+  .presets button:hover {
+    background: var(--card-hover);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .presets button.active {
+    background: var(--card-hover);
+    border-color: var(--gold);
+    color: var(--gold);
+    font-weight: 600;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .stat-input {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .stat-input label {
+    font-size: 0.78em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-input input {
+    background: #0a0a1a;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 6px 8px;
+    font-size: 0.9em;
+    width: 100%;
+  }
+  .stat-input input:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+  .weapon-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .cd-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  .cd-row label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85em;
+    cursor: pointer;
+  }
+  .cd-row input[type="checkbox"] {
+    accent-color: var(--gold);
+    width: 16px;
+    height: 16px;
+  }
+  .fight-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+  }
+  #sim-btn {
+    background: linear-gradient(135deg, #1a2745, #0f3460);
+    color: var(--gold);
+    border: 2px solid var(--gold);
+    padding: 10px 32px;
+    border-radius: 6px;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  #sim-btn:hover {
+    background: linear-gradient(135deg, #243554, #1a4a7a);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+  }
+  #sim-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .big-dps {
+    text-align: center;
+    padding: 20px 0 10px;
+  }
+  .big-dps .number {
+    font-size: 3em;
+    font-weight: 800;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .big-dps .label {
+    font-size: 0.85em;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+    margin-top: 10px;
+  }
+  .breakdown-table th {
+    text-align: left;
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .breakdown-table th:not(:first-child) {
+    text-align: right;
+  }
+  .breakdown-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid rgba(15, 52, 96, 0.4);
+  }
+  .breakdown-table td:not(:first-child) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .breakdown-table tr:last-child td {
+    border-bottom: none;
+    font-weight: 700;
+    border-top: 1px solid var(--border);
+  }
+  .chart-section {
+    display: flex;
+    justify-content: center;
+    padding: 16px 0;
+  }
+  .stat-weights-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+  }
+  .stat-weights-table th {
+    text-align: left;
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-weights-table th:not(:first-child) {
+    text-align: right;
+  }
+  .stat-weights-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid rgba(15, 52, 96, 0.4);
+  }
+  .stat-weights-table td:not(:first-child) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .progress-bar {
+    background: #0a0a1a;
+    border-radius: 4px;
+    height: 6px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    background: linear-gradient(90deg, var(--gold), #ffed4a);
+    height: 100%;
+    width: 0%;
+    transition: width 0.1s;
+    border-radius: 4px;
+  }
+  #progress-container {
+    display: none;
+    text-align: center;
+    margin-top: 10px;
+  }
+  #progress-container .text {
+    font-size: 0.82em;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  #results-panel {
+    display: none;
+  }
+  @media (max-width: 700px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .weapon-row { grid-template-columns: repeat(2, 1fr); }
+    .results-grid { grid-template-columns: 1fr; }
+    .fight-row { grid-template-columns: 1fr 1fr; }
+    #sim-btn { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+
+<h1>BM Hunter TBC DPS Simulator</h1>
+<p class="subtitle">Event-driven rotation sim &mdash; mirrors the v2 auto-shot bot logic</p>
+
+<div class="panel">
+  <h2>Gear Preset</h2>
+  <div class="presets">
+    <button onclick="loadPreset('preraid')" id="btn-preraid">Pre-Raid BiS</button>
+    <button onclick="loadPreset('t4')" id="btn-t4">T4 BiS</button>
+    <button onclick="loadPreset('t5')" id="btn-t5">T5 BiS</button>
+    <button onclick="loadPreset('custom')" id="btn-custom">Custom</button>
+  </div>
+
+  <h2>Character Stats</h2>
+  <div class="stats-grid">
+    <div class="stat-input"><label>Agility</label><input type="number" id="stat-agi" value="502"></div>
+    <div class="stat-input"><label>Attack Power</label><input type="number" id="stat-ap" value="2200"></div>
+    <div class="stat-input"><label>Hit Rating</label><input type="number" id="stat-hit" value="142"></div>
+    <div class="stat-input"><label>Crit Rating</label><input type="number" id="stat-crit" value="165"></div>
+    <div class="stat-input"><label>Haste Rating</label><input type="number" id="stat-haste" value="32"></div>
+    <div class="stat-input"><label>Intellect</label><input type="number" id="stat-int" value="210"></div>
+  </div>
+
+  <h2>Weapon &amp; Ammo</h2>
+  <div class="weapon-row">
+    <div class="stat-input"><label>Speed</label><input type="number" id="wep-speed" value="2.9" step="0.1"></div>
+    <div class="stat-input"><label>Min Dmg</label><input type="number" id="wep-min" value="159"></div>
+    <div class="stat-input"><label>Max Dmg</label><input type="number" id="wep-max" value="239"></div>
+    <div class="stat-input"><label>Ammo DPS</label><input type="number" id="ammo-dps" value="43"></div>
+  </div>
+
+  <h2>Cooldowns</h2>
+  <div class="cd-row">
+    <label><input type="checkbox" id="cd-rf" checked> Rapid Fire</label>
+    <label><input type="checkbox" id="cd-bw" checked> Bestial Wrath</label>
+    <label><input type="checkbox" id="cd-hero" checked> Heroism</label>
+    <label><input type="checkbox" id="cd-pot" checked> Haste Potion</label>
+    <label><input type="checkbox" id="cd-drums" checked> Drums</label>
+  </div>
+
+  <h2>Fight Configuration</h2>
+  <div class="fight-row">
+    <div class="stat-input"><label>Duration (sec)</label><input type="number" id="fight-dur" value="300"></div>
+    <div class="stat-input"><label>Iterations</label><input type="number" id="fight-iter" value="1000"></div>
+    <button id="sim-btn" onclick="startSimulation()">Simulate</button>
+  </div>
+  <div id="progress-container">
+    <div class="text" id="progress-text">Simulating... 0%</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+</div>
+
+<div id="results-panel">
+  <div class="panel">
+    <div class="big-dps">
+      <div class="number" id="dps-number">0</div>
+      <div class="label">Damage Per Second</div>
+    </div>
+  </div>
+
+  <div class="results-grid">
+    <div class="panel">
+      <h2>Damage Breakdown</h2>
+      <table class="breakdown-table" id="breakdown-table">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Damage</th>
+            <th>DPS</th>
+            <th>Casts</th>
+            <th>Avg Hit</th>
+            <th>Crit%</th>
+            <th>%Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="panel" style="display:flex;flex-direction:column;align-items:center;">
+      <h2 style="width:100%;">Damage Distribution</h2>
+      <div class="chart-section">
+        <canvas id="pie-chart" width="260" height="260"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Stat Weights</h2>
+    <table class="stat-weights-table" id="weights-table">
+      <thead>
+        <tr>
+          <th>Stat</th>
+          <th>DPS / Point</th>
+          <th>Weight (AP=1.0)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Presets
+// ============================================================
+const PRESETS = {
+  preraid: {
+    agi: 401, ap: 1810, hit: 95, crit: 110, haste: 0, int: 185,
+    wepSpeed: 3.0, wepMin: 165, wepMax: 248, ammoDps: 43,
+    rf: true, bw: true, hero: false, pot: false, drums: false
+  },
+  t4: {
+    agi: 502, ap: 2200, hit: 142, crit: 165, haste: 32, int: 210,
+    wepSpeed: 2.9, wepMin: 159, wepMax: 239, ammoDps: 43,
+    rf: true, bw: true, hero: true, pot: true, drums: true
+  },
+  t5: {
+    agi: 590, ap: 2650, hit: 142, crit: 210, haste: 78, int: 230,
+    wepSpeed: 2.7, wepMin: 177, wepMax: 266, ammoDps: 43,
+    rf: true, bw: true, hero: true, pot: true, drums: true
+  }
+};
+
+let activePreset = 't4';
+
+function loadPreset(name) {
+  const p = PRESETS[name];
+  if (!p) {
+    activePreset = 'custom';
+    updatePresetButtons();
+    return;
+  }
+  activePreset = name;
+  document.getElementById('stat-agi').value = p.agi;
+  document.getElementById('stat-ap').value = p.ap;
+  document.getElementById('stat-hit').value = p.hit;
+  document.getElementById('stat-crit').value = p.crit;
+  document.getElementById('stat-haste').value = p.haste;
+  document.getElementById('stat-int').value = p.int;
+  document.getElementById('wep-speed').value = p.wepSpeed;
+  document.getElementById('wep-min').value = p.wepMin;
+  document.getElementById('wep-max').value = p.wepMax;
+  document.getElementById('ammo-dps').value = p.ammoDps;
+  document.getElementById('cd-rf').checked = p.rf;
+  document.getElementById('cd-bw').checked = p.bw;
+  document.getElementById('cd-hero').checked = p.hero;
+  document.getElementById('cd-pot').checked = p.pot;
+  document.getElementById('cd-drums').checked = p.drums;
+  updatePresetButtons();
+}
+
+function updatePresetButtons() {
+  ['preraid', 't4', 't5', 'custom'].forEach(n => {
+    const btn = document.getElementById('btn-' + n);
+    if (btn) btn.classList.toggle('active', n === activePreset);
+  });
+}
+
+// Mark custom on any input change
+document.querySelectorAll('.stats-grid input, .weapon-row input, .cd-row input').forEach(el => {
+  el.addEventListener('change', () => {
+    activePreset = 'custom';
+    updatePresetButtons();
+  });
+});
+
+// ============================================================
+// Read inputs
+// ============================================================
+function readConfig() {
+  return {
+    agi: +document.getElementById('stat-agi').value,
+    ap: +document.getElementById('stat-ap').value,
+    hitRating: +document.getElementById('stat-hit').value,
+    critRating: +document.getElementById('stat-crit').value,
+    hasteRating: +document.getElementById('stat-haste').value,
+    int: +document.getElementById('stat-int').value,
+    wepSpeed: +document.getElementById('wep-speed').value,
+    wepMin: +document.getElementById('wep-min').value,
+    wepMax: +document.getElementById('wep-max').value,
+    ammoDps: +document.getElementById('ammo-dps').value,
+    useRF: document.getElementById('cd-rf').checked,
+    useBW: document.getElementById('cd-bw').checked,
+    useHero: document.getElementById('cd-hero').checked,
+    usePot: document.getElementById('cd-pot').checked,
+    useDrums: document.getElementById('cd-drums').checked,
+    duration: +document.getElementById('fight-dur').value,
+    iterations: +document.getElementById('fight-iter').value
+  };
+}
+
+// ============================================================
+// Min-Heap Priority Queue
+// ============================================================
+class MinHeap {
+  constructor() { this.data = []; }
+  get size() { return this.data.length; }
+  push(item) {
+    this.data.push(item);
+    this._bubbleUp(this.data.length - 1);
+  }
+  pop() {
+    const top = this.data[0];
+    const last = this.data.pop();
+    if (this.data.length > 0) {
+      this.data[0] = last;
+      this._sinkDown(0);
+    }
+    return top;
+  }
+  peek() { return this.data[0]; }
+  _bubbleUp(i) {
+    const d = this.data;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (d[p].time <= d[i].time) break;
+      [d[p], d[i]] = [d[i], d[p]];
+      i = p;
+    }
+  }
+  _sinkDown(i) {
+    const d = this.data;
+    const n = d.length;
+    while (true) {
+      let smallest = i;
+      const l = 2 * i + 1;
+      const r = 2 * i + 2;
+      if (l < n && d[l].time < d[smallest].time) smallest = l;
+      if (r < n && d[r].time < d[smallest].time) smallest = r;
+      if (smallest === i) break;
+      [d[smallest], d[i]] = [d[i], d[smallest]];
+      i = smallest;
+    }
+  }
+}
+
+// ============================================================
+// Simulation Engine
+// ============================================================
+function buildStats(cfg, bonuses) {
+  const b = bonuses || {};
+  const agi = cfg.agi + (b.agi || 0);
+  const rawAP = cfg.ap + (b.ap || 0);
+  const hitRating = cfg.hitRating + (b.hit || 0);
+  const critRating = cfg.critRating + (b.crit || 0);
+  const hasteRating = cfg.hasteRating + (b.haste || 0);
+
+  // RAP includes AGI contribution (1 AGI = 1 RAP)
+  const rap = rawAP + agi;
+
+  const hitPct = Math.min(hitRating / 15.77, 9.0);
+  const missPct = Math.max(0, 9.0 - hitPct) / 100;
+
+  // Crit: AGI contribution (40 AGI = 1%) + crit rating (22.08 = 1%)
+  // Base crit ~3.5% for hunters + lethal shots 5/5 = +5% = 8.5% base
+  const critPct = 8.5 + (agi / 40) + (critRating / 22.08);
+  const critChance = Math.min(critPct / 100, 1.0);
+
+  // Haste from gear rating
+  const gearHastePct = hasteRating / 15.77 / 100;
+
+  // Passive haste: quiver 15%, Serpent's Swiftness 20%, gear
+  const passiveHaste = (1 + 0.15) * (1 + 0.20) * (1 + gearHastePct);
+
+  // Pet stats
+  const petAP = rap * 0.22 * 1.10; // Animal Handler
+  const petCritChance = Math.min(critChance + 0.10, 1.0); // Ferocity +10%
+  const petKCCritChance = Math.min(petCritChance + 0.10, 1.0); // Focused Fire +10% for KC
+  const petMissPct = 0.05; // 9% - 4% Animal Handler
+
+  return {
+    rap, missPct, critChance, passiveHaste, gearHastePct,
+    wepSpeed: cfg.wepSpeed, wepMin: cfg.wepMin, wepMax: cfg.wepMax,
+    ammoDps: cfg.ammoDps,
+    petAP, petCritChance, petKCCritChance, petMissPct,
+    useRF: cfg.useRF, useBW: cfg.useBW, useHero: cfg.useHero,
+    usePot: cfg.usePot, useDrums: cfg.useDrums,
+    duration: cfg.duration,
+    mana: cfg.int * 15 + 3000 // base mana + int contribution
+  };
+}
+
+function runSingleFight(stats) {
+  const pq = new MinHeap();
+  const duration = stats.duration;
+
+  // State
+  const state = {
+    time: 0,
+    gcdReady: 0,
+    casting: false,
+    castEnd: 0,
+    nextAutoTime: 0,
+
+    // Cooldowns
+    arcaneCDReady: 0,
+    multiCDReady: 0,
+    kcCDReady: 0,
+    rfCDReady: 0,
+    bwCDReady: 0,
+    drumsCDReady: 0,
+
+    // Active buffs
+    rfActive: false, rfEnd: 0,
+    bwActive: false, bwEnd: 0,
+    heroActive: false, heroEnd: 0,
+    potActive: false, potEnd: 0,
+    drumsActive: false, drumsEnd: 0,
+    impHawkActive: false, impHawkEnd: 0,
+
+    // Pet
+    petNextSwing: 0,
+    petFocusMax: 100,
+    petFocus: 100,
+    petFrenzyActive: false,
+    petFrenzyEnd: 0,
+
+    // Mana (simplified)
+    mana: stats.mana
+  };
+
+  // Damage log
+  const log = {
+    autoShot: { damage: 0, casts: 0, crits: 0, hits: 0 },
+    steadyShot: { damage: 0, casts: 0, crits: 0, hits: 0 },
+    arcaneShot: { damage: 0, casts: 0, crits: 0, hits: 0 },
+    multiShot: { damage: 0, casts: 0, crits: 0, hits: 0 },
+    killCommand: { damage: 0, casts: 0, crits: 0, hits: 0 },
+    petMelee: { damage: 0, casts: 0, crits: 0, hits: 0 },
+    petClaw: { damage: 0, casts: 0, crits: 0, hits: 0 }
+  };
+
+  function rand() { return Math.random(); }
+  function roll(min, max) { return min + rand() * (max - min); }
+
+  function getActiveHaste() {
+    let h = 1.0;
+    if (state.rfActive) h *= 1.40;
+    if (state.heroActive) h *= 1.30;
+    if (state.potActive) h *= 1.2536;
+    if (state.drumsActive) h *= 1.0507;
+    if (state.impHawkActive) h *= 1.15;
+    return h;
+  }
+
+  function getTotalHaste() {
+    return stats.passiveHaste * getActiveHaste();
+  }
+
+  function getAutoSpeed() {
+    return stats.wepSpeed / getTotalHaste();
+  }
+
+  function getSteadyCast() {
+    return 1.5 / getTotalHaste();
+  }
+
+  function getMultiCast() {
+    return 0.5 / getTotalHaste();
+  }
+
+  function getPetSpeed() {
+    let speed = 2.0;
+    // Cobra Reflexes: 30% faster
+    speed /= 1.30;
+    // Serpent's Swiftness: 20% faster (already in passive haste for hunter, separate for pet)
+    speed /= 1.20;
+    // Frenzy: 30% faster
+    if (state.petFrenzyActive) speed /= 1.30;
+    return speed;
+  }
+
+  // Hunter ranged damage multiplier
+  function hunterDmgMult() {
+    let m = 1.0;
+    m *= 1.05; // Ranged Weapon Specialization
+    m *= 1.02; // Focused Fire
+    if (state.bwActive) m *= 1.10; // The Beast Within
+    return m;
+  }
+
+  // Deal hunter ranged damage with hit/crit
+  function dealHunterDamage(baseDmg, logEntry) {
+    logEntry.casts++;
+    if (rand() < stats.missPct) return; // miss
+    let dmg = baseDmg * hunterDmgMult();
+    let isCrit = rand() < stats.critChance;
+    if (isCrit) {
+      dmg *= 2.3; // Mortal Shots
+      logEntry.crits++;
+    }
+    logEntry.hits++;
+    logEntry.damage += dmg;
+  }
+
+  // Deal pet damage with hit/crit
+  function dealPetDamage(baseDmg, logEntry, critChance) {
+    logEntry.casts++;
+    if (rand() < stats.petMissPct) return; // miss
+    let dmg = baseDmg;
+    if (state.bwActive) dmg *= 1.50; // Bestial Wrath for pet = +50% damage
+    let isCrit = rand() < critChance;
+    if (isCrit) {
+      dmg *= 2.0;
+      logEntry.crits++;
+      // Frenzy proc: 100% on crit with 5/5 Frenzy
+      state.petFrenzyActive = true;
+      state.petFrenzyEnd = state.time + 8;
+      // Schedule frenzy end
+      pq.push({ time: state.petFrenzyEnd, type: 'FRENZY_END' });
+    }
+    logEntry.hits++;
+    logEntry.damage += dmg;
+  }
+
+  // Schedule event
+  function schedule(time, type, data) {
+    if (time <= duration) {
+      pq.push({ time, type, data: data || null });
+    }
+  }
+
+  // Auto shot damage
+  function fireAutoShot() {
+    const baseDmg = roll(stats.wepMin, stats.wepMax) + (stats.rap / 14 + stats.ammoDps) * stats.wepSpeed;
+    dealHunterDamage(baseDmg, log.autoShot);
+    // Imp Hawk proc: 10% on auto
+    if (rand() < 0.10) {
+      state.impHawkActive = true;
+      state.impHawkEnd = state.time + 12;
+      schedule(state.impHawkEnd, 'IMP_HAWK_END');
+    }
+  }
+
+  // Schedule next auto shot
+  function scheduleNextAuto() {
+    const speed = getAutoSpeed();
+    state.nextAutoTime = state.time + speed;
+    schedule(state.nextAutoTime, 'AUTO_READY');
+  }
+
+  // Try to use Kill Command (off-GCD)
+  function tryKillCommand() {
+    if (state.time >= state.kcCDReady && !state.casting) {
+      // Pet KC damage: pet melee + 127 bonus, scaled
+      const petBaseMelee = roll(57, 80);
+      const petSwingDmg = (petBaseMelee + stats.petAP / 14 * (2.0 / 1.30)) * 1.20 * 0.80;
+      const kcDmg = petSwingDmg + 127;
+      dealPetDamage(kcDmg, log.killCommand, stats.petKCCritChance);
+      state.kcCDReady = state.time + 5;
+      schedule(state.kcCDReady, 'CD_READY', { ability: 'kc' });
+      return true;
+    }
+    return false;
+  }
+
+  // Main rotation decision
+  function decide() {
+    if (state.mana < 50) return; // OOM safety
+
+    // Kill Command (off-GCD) - always try
+    tryKillCommand();
+
+    // If casting or GCD active, wait
+    if (state.casting || state.time < state.gcdReady) return;
+
+    const now = state.time;
+    const timeToAuto = state.nextAutoTime - now;
+    const hastedSteady = getSteadyCast();
+    const hastedMulti = getMultiCast();
+
+    if (timeToAuto > hastedSteady) {
+      // GREEN window - cast Steady Shot
+      castSteady();
+    } else if (timeToAuto > 0.1) {
+      // YELLOW window - instants or Multi
+      if (now >= state.multiCDReady && timeToAuto > hastedMulti + 0.1) {
+        castMulti();
+      } else if (now >= state.arcaneCDReady) {
+        castArcane();
+      }
+      // else wait for auto
+    }
+    // RED window or nothing to do - wait
+  }
+
+  function castSteady() {
+    const castTime = getSteadyCast();
+    state.casting = true;
+    state.castEnd = state.time + castTime;
+    state.mana -= 110;
+    schedule(state.castEnd, 'CAST_COMPLETE', { ability: 'steady' });
+  }
+
+  function castMulti() {
+    const castTime = getMultiCast();
+    state.casting = true;
+    state.castEnd = state.time + castTime;
+    state.mana -= 275;
+    state.multiCDReady = state.time + 10;
+    schedule(state.castEnd, 'CAST_COMPLETE', { ability: 'multi' });
+    schedule(state.multiCDReady, 'CD_READY', { ability: 'multi' });
+  }
+
+  function castArcane() {
+    // Instant cast, uses GCD
+    const baseDmg = 273 + 0.15 * stats.rap;
+    dealHunterDamage(baseDmg, log.arcaneShot);
+    state.mana -= 230;
+    state.arcaneCDReady = state.time + 6;
+    state.gcdReady = state.time + 1.5; // GCD is 1.5s fixed for hunters in TBC
+    schedule(state.arcaneCDReady, 'CD_READY', { ability: 'arcane' });
+    schedule(state.gcdReady, 'GCD_READY');
+  }
+
+  function completeSteady() {
+    const baseDmg = 150 + roll(stats.wepMin, stats.wepMax) + stats.ammoDps * 2.8 + 0.2 * stats.rap;
+    dealHunterDamage(baseDmg, log.steadyShot);
+    state.casting = false;
+    state.gcdReady = state.time + 1.5;
+    schedule(state.gcdReady, 'GCD_READY');
+  }
+
+  function completeMulti() {
+    const baseDmg = roll(stats.wepMin, stats.wepMax) + 205 + (stats.rap / 14 + stats.ammoDps) * stats.wepSpeed + 0.2 * stats.rap;
+    dealHunterDamage(baseDmg, log.multiShot);
+    state.casting = false;
+    state.gcdReady = state.time + 1.5;
+    schedule(state.gcdReady, 'GCD_READY');
+  }
+
+  // Pet melee swing
+  function petSwing() {
+    const petBaseMelee = roll(57, 80);
+    // Cobra Reflexes: 0.80 damage mult, Unleashed Fury: 1.20
+    const baseDmg = (petBaseMelee + stats.petAP / 14 * (2.0 / 1.30)) * 1.20 * 0.80;
+    dealPetDamage(baseDmg, log.petMelee, stats.petCritChance);
+    // Regen focus
+    state.petFocus = Math.min(state.petFocusMax, state.petFocus + getPetSpeed() * 5);
+    // Try pet Claw if enough focus
+    if (state.petFocus >= 25) {
+      const clawDmg = roll(31, 43) + stats.petAP * 0.05;
+      let clawBaseDmg = clawDmg * 1.20 * 0.80; // UF and Cobra Reflexes
+      dealPetDamage(clawBaseDmg, log.petClaw, stats.petCritChance);
+      state.petFocus -= 25;
+    }
+    // Schedule next swing
+    const nextSwing = state.time + getPetSpeed();
+    state.petNextSwing = nextSwing;
+    schedule(nextSwing, 'PET_SWING');
+  }
+
+  // Buff management
+  function activateRF() {
+    if (!stats.useRF) return;
+    state.rfActive = true;
+    state.rfEnd = state.time + 15;
+    state.rfCDReady = state.time + 300; // 5min CD
+    schedule(state.rfEnd, 'BUFF_END', { buff: 'rf' });
+    schedule(state.rfCDReady, 'CD_READY', { ability: 'rf' });
+  }
+
+  function activateBW() {
+    if (!stats.useBW) return;
+    state.bwActive = true;
+    state.bwEnd = state.time + 18;
+    state.bwCDReady = state.time + 120; // 2min CD
+    schedule(state.bwEnd, 'BUFF_END', { buff: 'bw' });
+    schedule(state.bwCDReady, 'CD_READY', { ability: 'bw' });
+  }
+
+  function activateHero() {
+    if (!stats.useHero) return;
+    state.heroActive = true;
+    state.heroEnd = state.time + 40;
+    schedule(state.heroEnd, 'BUFF_END', { buff: 'hero' });
+  }
+
+  function activatePot() {
+    if (!stats.usePot) return;
+    state.potActive = true;
+    state.potEnd = state.time + 15;
+    schedule(state.potEnd, 'BUFF_END', { buff: 'pot' });
+  }
+
+  function activateDrums() {
+    if (!stats.useDrums) return;
+    state.drumsActive = true;
+    state.drumsEnd = state.time + 30;
+    state.drumsCDReady = state.time + 120; // 2min CD
+    schedule(state.drumsEnd, 'BUFF_END', { buff: 'drums' });
+    schedule(state.drumsCDReady, 'CD_READY', { ability: 'drums' });
+  }
+
+  // Initialize fight
+  // Pre-pull: activate CDs at t=0
+  schedule(0, 'FIGHT_START');
+
+  // Main event loop
+  let safety = 0;
+  const maxEvents = duration * 500; // safety limit
+
+  while (pq.size > 0 && safety < maxEvents) {
+    safety++;
+    const evt = pq.pop();
+    if (evt.time > duration) break;
+    state.time = evt.time;
+
+    switch (evt.type) {
+      case 'FIGHT_START':
+        // Activate pre-pull CDs
+        activateRF();
+        activateBW();
+        if (stats.useHero) activateHero();
+        if (stats.usePot) activatePot();
+        if (stats.useDrums) activateDrums();
+        // First auto shot
+        fireAutoShot();
+        scheduleNextAuto();
+        // Pet starts swinging
+        state.petNextSwing = state.time + getPetSpeed();
+        schedule(state.petNextSwing, 'PET_SWING');
+        // Start rotation
+        state.gcdReady = state.time;
+        schedule(state.time + 0.001, 'DECISION');
+        break;
+
+      case 'AUTO_READY':
+        // Only fire if this is still the expected auto time (not stale)
+        if (Math.abs(evt.time - state.nextAutoTime) < 0.001) {
+          // If casting, auto is clipped - delay until cast finishes
+          if (state.casting) {
+            state.nextAutoTime = state.castEnd + 0.001;
+            schedule(state.nextAutoTime, 'AUTO_READY');
+          } else {
+            fireAutoShot();
+            scheduleNextAuto();
+            // Re-evaluate rotation after auto fires
+            schedule(state.time + 0.001, 'DECISION');
+          }
+        }
+        break;
+
+      case 'CAST_COMPLETE':
+        if (evt.data.ability === 'steady') {
+          completeSteady();
+        } else if (evt.data.ability === 'multi') {
+          completeMulti();
+        }
+        // Check if auto was delayed due to casting
+        if (state.nextAutoTime <= state.time) {
+          fireAutoShot();
+          scheduleNextAuto();
+        }
+        schedule(state.time + 0.001, 'DECISION');
+        break;
+
+      case 'GCD_READY':
+        decide();
+        break;
+
+      case 'CD_READY':
+        if (evt.data) {
+          if (evt.data.ability === 'rf' && stats.useRF && state.time >= state.rfCDReady) {
+            activateRF();
+          }
+          if (evt.data.ability === 'bw' && stats.useBW && state.time >= state.bwCDReady) {
+            activateBW();
+          }
+          if (evt.data.ability === 'drums' && stats.useDrums && state.time >= state.drumsCDReady) {
+            activateDrums();
+          }
+        }
+        decide();
+        break;
+
+      case 'BUFF_END':
+        if (evt.data) {
+          if (evt.data.buff === 'rf' && state.time >= state.rfEnd) state.rfActive = false;
+          if (evt.data.buff === 'bw' && state.time >= state.bwEnd) state.bwActive = false;
+          if (evt.data.buff === 'hero' && state.time >= state.heroEnd) state.heroActive = false;
+          if (evt.data.buff === 'pot' && state.time >= state.potEnd) state.potActive = false;
+          if (evt.data.buff === 'drums' && state.time >= state.drumsEnd) state.drumsActive = false;
+        }
+        break;
+
+      case 'IMP_HAWK_END':
+        if (state.time >= state.impHawkEnd) {
+          state.impHawkActive = false;
+        }
+        break;
+
+      case 'PET_SWING':
+        if (Math.abs(evt.time - state.petNextSwing) < 0.01) {
+          petSwing();
+        }
+        break;
+
+      case 'FRENZY_END':
+        if (state.time >= state.petFrenzyEnd) {
+          state.petFrenzyActive = false;
+        }
+        break;
+
+      case 'DECISION':
+        decide();
+        break;
+    }
+  }
+
+  return log;
+}
+
+// ============================================================
+// Aggregate results
+// ============================================================
+function aggregateResults(logs, duration) {
+  const sources = ['autoShot', 'steadyShot', 'arcaneShot', 'multiShot', 'killCommand', 'petMelee', 'petClaw'];
+  const labels = {
+    autoShot: 'Auto Shot',
+    steadyShot: 'Steady Shot',
+    arcaneShot: 'Arcane Shot',
+    multiShot: 'Multi-Shot',
+    killCommand: 'Kill Command',
+    petMelee: 'Pet Melee',
+    petClaw: 'Pet Claw'
+  };
+  const colors = {
+    autoShot: 'var(--auto-color)',
+    steadyShot: 'var(--steady-color)',
+    arcaneShot: 'var(--arcane-color)',
+    multiShot: 'var(--multi-color)',
+    killCommand: 'var(--kc-color)',
+    petMelee: 'var(--pet-color)',
+    petClaw: '#2e7d32'
+  };
+  const colorHex = {
+    autoShot: '#ffffff',
+    steadyShot: '#ffd700',
+    arcaneShot: '#5090d0',
+    multiShot: '#ff69b4',
+    killCommand: '#ff8c00',
+    petMelee: '#4caf50',
+    petClaw: '#2e7d32'
+  };
+
+  const n = logs.length;
+  let totalDamage = 0;
+  const agg = {};
+
+  sources.forEach(s => {
+    agg[s] = { damage: 0, casts: 0, crits: 0, hits: 0 };
+  });
+
+  logs.forEach(log => {
+    sources.forEach(s => {
+      agg[s].damage += log[s].damage;
+      agg[s].casts += log[s].casts;
+      agg[s].crits += log[s].crits;
+      agg[s].hits += log[s].hits;
+    });
+  });
+
+  // Average per iteration
+  sources.forEach(s => {
+    agg[s].damage /= n;
+    agg[s].casts /= n;
+    agg[s].crits /= n;
+    agg[s].hits /= n;
+    totalDamage += agg[s].damage;
+  });
+
+  const totalDPS = totalDamage / duration;
+
+  const rows = sources.map(s => ({
+    name: labels[s],
+    key: s,
+    damage: agg[s].damage,
+    dps: agg[s].damage / duration,
+    casts: agg[s].casts,
+    avgHit: agg[s].hits > 0 ? agg[s].damage / agg[s].hits : 0,
+    critPct: agg[s].hits > 0 ? (agg[s].crits / agg[s].hits) * 100 : 0,
+    pctTotal: totalDamage > 0 ? (agg[s].damage / totalDamage) * 100 : 0,
+    color: colors[s],
+    colorHex: colorHex[s]
+  }));
+
+  // Sort by damage descending
+  rows.sort((a, b) => b.damage - a.damage);
+
+  return { totalDPS, totalDamage, rows, duration };
+}
+
+// ============================================================
+// Run simulation in batches to avoid blocking UI
+// ============================================================
+function startSimulation() {
+  const cfg = readConfig();
+  const btn = document.getElementById('sim-btn');
+  const progContainer = document.getElementById('progress-container');
+  const progText = document.getElementById('progress-text');
+  const progFill = document.getElementById('progress-fill');
+  const resultsPanel = document.getElementById('results-panel');
+
+  btn.disabled = true;
+  btn.textContent = 'Simulating...';
+  progContainer.style.display = 'block';
+  progFill.style.width = '0%';
+
+  const stats = buildStats(cfg);
+  const totalIter = cfg.iterations;
+  const batchSize = Math.max(1, Math.floor(totalIter / 50)); // ~50 batches
+  const allLogs = [];
+  let completed = 0;
+
+  function runBatch() {
+    const end = Math.min(completed + batchSize, totalIter);
+    for (let i = completed; i < end; i++) {
+      allLogs.push(runSingleFight(stats));
+    }
+    completed = end;
+    const pct = Math.round((completed / totalIter) * 100);
+    progText.textContent = `Simulating... ${pct}%`;
+    progFill.style.width = pct + '%';
+
+    if (completed < totalIter) {
+      setTimeout(runBatch, 0);
+    } else {
+      // Done - aggregate and display
+      const results = aggregateResults(allLogs, cfg.duration);
+      displayResults(results);
+
+      // Stat weights
+      computeStatWeights(cfg, results.totalDPS);
+
+      btn.disabled = false;
+      btn.textContent = 'Simulate';
+      progContainer.style.display = 'none';
+      resultsPanel.style.display = 'block';
+    }
+  }
+
+  setTimeout(runBatch, 0);
+}
+
+// ============================================================
+// Stat Weight Computation
+// ============================================================
+function computeStatWeights(baseCfg, baseDPS) {
+  const deltas = [
+    { label: 'Agility', key: 'agi', amount: 100, bonus: { agi: 100 } },
+    { label: 'Attack Power', key: 'ap', amount: 100, bonus: { ap: 100 } },
+    { label: 'Hit Rating', key: 'hit', amount: 10, bonus: { hit: 10 } },
+    { label: 'Crit Rating', key: 'crit', amount: 10, bonus: { crit: 10 } },
+    { label: 'Haste Rating', key: 'haste', amount: 10, bonus: { haste: 10 } }
+  ];
+
+  // Quick sim for stat weights: fewer iterations
+  const quickIter = Math.max(100, Math.floor(baseCfg.iterations / 2));
+  const weightResults = [];
+
+  // Baseline with quick iter for comparison fairness
+  const baseStats = buildStats(baseCfg);
+  const baseLogs = [];
+  for (let i = 0; i < quickIter; i++) {
+    baseLogs.push(runSingleFight(baseStats));
+  }
+  const baseResult = aggregateResults(baseLogs, baseCfg.duration);
+  const baseQuickDPS = baseResult.totalDPS;
+
+  deltas.forEach(d => {
+    const modStats = buildStats(baseCfg, d.bonus);
+    const logs = [];
+    for (let i = 0; i < quickIter; i++) {
+      logs.push(runSingleFight(modStats));
+    }
+    const result = aggregateResults(logs, baseCfg.duration);
+    const dpsGain = result.totalDPS - baseQuickDPS;
+    const dpsPerPoint = dpsGain / d.amount;
+    weightResults.push({
+      label: d.label,
+      dpsPerPoint,
+      dpsGain
+    });
+  });
+
+  // Normalize to AP = 1.0
+  const apWeight = weightResults.find(w => w.label === 'Attack Power');
+  const apDpsPerPoint = apWeight ? apWeight.dpsPerPoint : 1;
+
+  const tbody = document.getElementById('weights-table').querySelector('tbody');
+  tbody.innerHTML = '';
+  weightResults.forEach(w => {
+    const tr = document.createElement('tr');
+    const weight = apDpsPerPoint > 0 ? (w.dpsPerPoint / apDpsPerPoint) : 0;
+    tr.innerHTML = `
+      <td>${w.label}</td>
+      <td style="color: var(--green);">${w.dpsPerPoint.toFixed(3)}</td>
+      <td style="color: var(--gold); font-weight: 600;">${weight.toFixed(2)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ============================================================
+// Display Results
+// ============================================================
+function displayResults(results) {
+  // Big DPS number
+  document.getElementById('dps-number').textContent = Math.round(results.totalDPS).toLocaleString();
+
+  // Breakdown table
+  const tbody = document.getElementById('breakdown-table').querySelector('tbody');
+  tbody.innerHTML = '';
+
+  results.rows.forEach(r => {
+    if (r.casts < 0.5) return; // skip abilities that weren't used
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color: ${r.color}; font-weight: 600;">${r.name}</td>
+      <td>${formatNum(r.damage)}</td>
+      <td>${r.dps.toFixed(1)}</td>
+      <td>${r.casts.toFixed(1)}</td>
+      <td>${formatNum(r.avgHit)}</td>
+      <td>${r.critPct.toFixed(1)}%</td>
+      <td>${r.pctTotal.toFixed(1)}%</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Total row
+  const totalTr = document.createElement('tr');
+  totalTr.innerHTML = `
+    <td>Total</td>
+    <td>${formatNum(results.totalDamage)}</td>
+    <td style="color: var(--gold);">${results.totalDPS.toFixed(1)}</td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>100%</td>
+  `;
+  tbody.appendChild(totalTr);
+
+  // Pie chart
+  drawPieChart(results.rows);
+}
+
+function formatNum(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+  return Math.round(n).toLocaleString();
+}
+
+// ============================================================
+// Pie Chart (Canvas)
+// ============================================================
+function drawPieChart(rows) {
+  const canvas = document.getElementById('pie-chart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  const cx = W / 2;
+  const cy = H / 2;
+  const radius = Math.min(cx, cy) - 30;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const filtered = rows.filter(r => r.pctTotal > 0.5);
+  const total = filtered.reduce((s, r) => s + r.damage, 0);
+
+  let startAngle = -Math.PI / 2;
+
+  filtered.forEach(r => {
+    const sliceAngle = (r.damage / total) * 2 * Math.PI;
+    const endAngle = startAngle + sliceAngle;
+
+    // Draw slice
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = r.colorHex;
+    ctx.fill();
+
+    // Slice border
+    ctx.strokeStyle = '#1a1a2e';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    if (r.pctTotal > 4) {
+      const midAngle = startAngle + sliceAngle / 2;
+      const labelR = radius * 0.65;
+      const lx = cx + Math.cos(midAngle) * labelR;
+      const ly = cy + Math.sin(midAngle) * labelR;
+
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 11px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Dark text on light slices, light text on dark slices
+      const brightness = getBrightness(r.colorHex);
+      ctx.fillStyle = brightness > 128 ? '#000000' : '#ffffff';
+      ctx.fillText(Math.round(r.pctTotal) + '%', lx, ly);
+    }
+
+    startAngle = endAngle;
+  });
+
+  // Legend
+  const legendY = H - 10;
+  const legendStartX = 10;
+  ctx.font = '10px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+
+  let lx = legendStartX;
+  filtered.forEach((r, i) => {
+    if (r.pctTotal < 1) return;
+    ctx.fillStyle = r.colorHex;
+    ctx.fillRect(lx, legendY - 9, 8, 8);
+    ctx.fillStyle = '#e0e0e0';
+    const text = r.name.replace(' Shot', '').replace(' Melee', '').replace('Kill ', 'K');
+    ctx.fillText(text, lx + 10, legendY);
+    lx += ctx.measureText(text).width + 20;
+  });
+}
+
+function getBrightness(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000;
+}
+
+// ============================================================
+// Init
+// ============================================================
+loadPreset('t4');
+</script>
+</body>
+</html>
