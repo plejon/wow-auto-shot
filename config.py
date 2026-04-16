@@ -8,37 +8,37 @@ class Box(IntEnum):
     MULTI = 3
     MANA = 4
     GCD = 5
-    RAPID_FIRE = 6
-    HEROISM = 7
-    HASTE_POT = 8
-    DRUMS = 9
-    IMP_HAWK = 10
-    KILL_CMD = 11
+    MULTI_OK = 6
+    KILL_CMD = 7
+    RAPID_FIRE = 8
+    BESTIAL_WRATH = 9
+    TRINKET1 = 10
+    TRINKET2 = 11
 
 
-# Screen coordinates for each box center (measured in Paint)
+# Screen coordinates for each box center (horizontal layout, y=15)
 BOX_POS = {
-    Box.AUTO:       (15, 15),
-    Box.STEADY:     (15, 50),
-    Box.ARCANE:     (15, 85),
-    Box.MULTI:      (15, 120),
-    Box.MANA:       (15, 150),
-    Box.GCD:        (15, 185),
-    Box.RAPID_FIRE: (15, 220),
-    Box.HEROISM:    (15, 255),
-    Box.HASTE_POT:  (15, 290),
-    Box.DRUMS:      (15, 325),
-    Box.IMP_HAWK:   (15, 360),
-    Box.KILL_CMD:   (15, 395),
+    Box.AUTO:          (15, 15),
+    Box.STEADY:        (50, 15),
+    Box.ARCANE:        (85, 15),
+    Box.MULTI:         (120, 15),
+    Box.MANA:          (150, 15),
+    Box.GCD:           (185, 15),
+    Box.MULTI_OK:      (220, 15),
+    Box.KILL_CMD:      (255, 15),
+    Box.RAPID_FIRE:    (290, 15),
+    Box.BESTIAL_WRATH: (325, 15),
+    Box.TRINKET1:      (360, 15),
+    Box.TRINKET2:      (395, 15),
 }
 
-# Grab region covering all boxes (single column, 1px wide)
-_ys = [p[1] for p in BOX_POS.values()]
+# Grab region covering all boxes (single row, 1px tall)
+_xs = [p[0] for p in BOX_POS.values()]
 STRIP = {
-    "left": 15,
-    "top": min(_ys),
-    "width": 1,
-    "height": max(_ys) - min(_ys) + 1,
+    "left": min(_xs),
+    "top": 15,
+    "width": max(_xs) - min(_xs) + 1,
+    "height": 1,
 }
 
 # Color thresholds
@@ -54,23 +54,12 @@ KEYS = {
     "kill_cmd": "6",
 }
 
-# Passive haste (always active)
-BASE_WEAPON_SPEED = 2.9
-QUIVER_HASTE = 0.15       # 15% quiver
-TALENT_HASTE = 0.20       # 20% Serpent's Swiftness
-GEAR_HASTE = 0.0          # haste % from gear (update as you get gear)
-
-# Steady Shot
-STEADY_CAST_TIME = 1.5
-HASTE_YELLOW_STEADY_GAP = 0.4  # allow Steady in YELLOW when GREEN window < 400ms
-
-# Active haste buff multipliers (matched to WA boxes)
-HASTE_BUFFS = {
-    Box.RAPID_FIRE: 1.40,
-    Box.HEROISM:    1.30,
-    Box.HASTE_POT:  1.2536,  # 400 rating / 15.77
-    Box.DRUMS:      1.0507,  # 80 rating / 15.77
-    Box.IMP_HAWK:   1.15,
+# Cooldown boxes → key bindings
+CD_BOXES = {
+    Box.RAPID_FIRE:    "f12",
+    Box.BESTIAL_WRATH: "f11",
+    Box.TRINKET1:      "f10",
+    Box.TRINKET2:      "f9",
 }
 
 # Timing
@@ -78,9 +67,24 @@ POLL_RATE = 0.008
 DEBOUNCE_FRAMES = 2
 REPRESS_INTERVAL = 0.5
 
-# Hotkeys
-HOLD_CLEAVE_KEY = "§"         # cleave rotation (steady + arcane + multi weave)
-HOLD_FULL_KEY = "caps lock"   # full rotation (steady + arcane weave)
-HOLD_SIMPLE_KEY = "1"         # simple rotation (auto + steady only)
+# Shared hotkeys
 QUIT_KEY = "f7"
 CALIBRATE_KEY = "f8"
+
+# Per-preset hotkeys
+PRESETS = {
+    "bm": {
+        "HOLD_CLEAVE_KEY": "§",         # cleave rotation (no multi-shot)
+        "HOLD_FULL_KEY": "caps lock",   # full rotation (steady + arcane weave)
+        "HOLD_SIMPLE_KEY": "1",         # simple rotation (auto + steady only)
+        "HOLD_CD_KEY": "f",             # hold to pop cooldowns
+        "USE_CDS": True,
+    },
+    "pvp": {
+        "HOLD_CLEAVE_KEY": None,        # not used
+        "HOLD_FULL_KEY": None,          # not used
+        "HOLD_SIMPLE_KEY": "caps lock", # simple rotation (auto + steady + kill cmd)
+        "HOLD_CD_KEY": None,            # no CDs in pvp
+        "USE_CDS": False,
+    },
+}

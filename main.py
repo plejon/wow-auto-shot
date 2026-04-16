@@ -1,15 +1,16 @@
 """
-WoW Auto-Shot rotation weaver.
+WoW Auto-Shot rotation weaver (v2 — haste-aware WA boxes).
 
-Reads 11 WeakAura color boxes (vertical layout) and presses the right ability:
+Reads 8 WeakAura color boxes (vertical layout) and presses the right ability:
   BLACK  -> press 1 (start Auto Shot)
-  GREEN  -> press 2 (Steady Shot, >1.5s to swing)
-  YELLOW -> press 3 (Arcane Shot, 0.4-1.5s, if ready)
-  RED    -> wait (<0.4s to swing)
+  GREEN  -> press 2 (Steady Shot — more than hasted cast time to next auto)
+  YELLOW -> Arcane/Multi weave (instants + Multi if MULTI_OK)
+  RED    -> wait (<0.1s to swing)
 
 Requirements: pip install mss pydirectinput pystray Pillow keyboard
 """
 
+import argparse
 import mss
 import time
 import threading
@@ -21,11 +22,9 @@ import keyboard
 
 from config import (
     Box, BOX_POS, STRIP,
-    ON_THRESHOLD, OFF_MAX, KEYS,
+    ON_THRESHOLD, OFF_MAX, KEYS, CD_BOXES,
     POLL_RATE, DEBOUNCE_FRAMES, REPRESS_INTERVAL,
-    HOLD_CLEAVE_KEY, HOLD_FULL_KEY, HOLD_SIMPLE_KEY, QUIT_KEY, CALIBRATE_KEY,
-    HASTE_BUFFS, BASE_WEAPON_SPEED, QUIVER_HASTE, TALENT_HASTE, GEAR_HASTE,
-    STEADY_CAST_TIME, HASTE_YELLOW_STEADY_GAP,
+    QUIT_KEY, CALIBRATE_KEY, PRESETS,
 )
 
 
@@ -94,19 +93,6 @@ def read_all_rgb(sct: mss.mss) -> dict[Box, tuple[int, int, int]]:
 
 
 # ------------------------------------------------------------------
-# Haste calculation — pure function
-# ------------------------------------------------------------------
-def calc_effective_speed(colors: dict[Box, Color]) -> float:
-    """Return effective auto shot interval accounting for all haste."""
-    passive = (1 + QUIVER_HASTE) * (1 + TALENT_HASTE) * (1 + GEAR_HASTE)
-    active = 1.0
-    for box, multiplier in HASTE_BUFFS.items():
-        if colors[box] == Color.PINK:
-            active *= multiplier
-    return BASE_WEAPON_SPEED / (passive * active)
-
-
-# ------------------------------------------------------------------
 # Decision logic — pure function
 # ------------------------------------------------------------------
 def decide_action(colors: dict[Box, Color], simple: bool = False,
@@ -125,13 +111,11 @@ def decide_action(colors: dict[Box, Color], simple: bool = False,
     if not simple and auto == Color.YELLOW and gcd_ready:
         if (colors[Box.STEADY] != Color.YELLOW
                 and colors[Box.MANA] != Color.RED):
-            if allow_multi and colors[Box.MULTI] == Color.PINK:
+            if (allow_multi and colors[Box.MULTI] == Color.PINK
+                    and colors[Box.MULTI_OK] == Color.PINK):
                 return "multi"
             if colors[Box.ARCANE] == Color.BLUE:
                 return "arcane"
-            # No instant available — cast Steady if hasted
-            if calc_effective_speed(colors) - STEADY_CAST_TIME < HASTE_YELLOW_STEADY_GAP:
-                return "steady"
         return None
     # RED, GCD active, simple mode YELLOW, or anything else -> wait
     return None
@@ -166,7 +150,7 @@ def calibrate(sct: mss.mss, state: AppState):
     print("\n=== CALIBRATION MODE (F8 to exit) ===")
     for box in Box:
         sx, sy = BOX_POS[box]
-        print(f"  {box.name:6s} pixel: ({sx}, {sy})")
+        print(f"  {box.name:12s} pixel: ({sx}, {sy})")
     print()
 
     while True:
@@ -202,13 +186,13 @@ def create_tray(state: AppState) -> pystray.Icon:
 # ------------------------------------------------------------------
 # Hotkeys
 # ------------------------------------------------------------------
-def poll_mode() -> Mode:
+def poll_mode(preset: dict) -> Mode:
     """Check held keys directly — more reliable than press/release events."""
-    if keyboard.is_pressed(HOLD_CLEAVE_KEY):
+    if preset["HOLD_CLEAVE_KEY"] and keyboard.is_pressed(preset["HOLD_CLEAVE_KEY"]):
         return Mode.CLEAVE
-    if keyboard.is_pressed(HOLD_FULL_KEY):
+    if preset["HOLD_FULL_KEY"] and keyboard.is_pressed(preset["HOLD_FULL_KEY"]):
         return Mode.FULL
-    if keyboard.is_pressed(HOLD_SIMPLE_KEY):
+    if preset["HOLD_SIMPLE_KEY"] and keyboard.is_pressed(preset["HOLD_SIMPLE_KEY"]):
         return Mode.SIMPLE
     return Mode.OFF
 
@@ -230,28 +214,31 @@ def start_hotkeys(state: AppState):
 # Main
 # ------------------------------------------------------------------
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("preset", nargs="?", default="bm",
+                        choices=list(PRESETS.keys()),
+                        help="bm = full rotation, pvp = auto+steady+kill cmd only")
+    args = parser.parse_args()
+    preset = PRESETS[args.preset]
+
     pydirectinput.PAUSE = 0
     state = AppState()
 
     # Banner
     print("=" * 50)
-    print("  WoW Auto-Shot (Clean Rewrite)")
+    print(f"  WoW Auto-Shot v2 — preset: {args.preset.upper()}")
     print("=" * 50)
     for box in Box:
         sx, sy = BOX_POS[box]
-        print(f"  {box.name:6s} pixel: ({sx}, {sy})")
+        print(f"  {box.name:12s} pixel: ({sx}, {sy})")
     print(f"  Strip region   : {STRIP}")
-    passive = (1 + QUIVER_HASTE) * (1 + TALENT_HASTE) * (1 + GEAR_HASTE)
-    base_effective = BASE_WEAPON_SPEED / passive
-    print(f"  Base weapon spd: {BASE_WEAPON_SPEED:.1f}s")
-    print(f"  Passive haste  : quiver {QUIVER_HASTE:.0%} + talent {TALENT_HASTE:.0%} + gear {GEAR_HASTE:.0%} = {passive:.2f}x")
-    print(f"  Effective speed: {base_effective:.2f}s (no active buffs)")
-    print(f"  Haste threshold: Steady in YELLOW when GREEN < {HASTE_YELLOW_STEADY_GAP*1000:.0f}ms")
     print(f"  Poll rate      : {POLL_RATE*1000:.0f}ms (~{1/POLL_RATE:.0f}fps)")
     print(f"  Keys           : {KEYS}")
-    print(f"  Full rotation  : hold {HOLD_FULL_KEY}")
-    print(f"  No multi-shot  : hold {HOLD_CLEAVE_KEY}")
-    print(f"  Simple (quest) : hold {HOLD_SIMPLE_KEY}")
+    print(f"  Full rotation  : hold {preset['HOLD_FULL_KEY'] or 'disabled'}")
+    print(f"  No multi-shot  : hold {preset['HOLD_CLEAVE_KEY'] or 'disabled'}")
+    print(f"  Simple (quest) : hold {preset['HOLD_SIMPLE_KEY'] or 'disabled'}")
+    print(f"  Pop cooldowns  : hold {preset['HOLD_CD_KEY'] or 'disabled'}")
+    print(f"  CD keys        : {dict((b.name, k) for b, k in CD_BOXES.items())}")
     print(f"  Calibrate      : {CALIBRATE_KEY}")
     print(f"  Quit           : {QUIT_KEY}")
     print("=" * 50)
@@ -263,6 +250,7 @@ def main():
     sct = mss.mss()
     last_press = 0
     last_press_kc = 0
+    last_press_cd: dict[Box, float] = {box: 0 for box in CD_BOXES}
     last_log_action: str | None = object()  # sentinel: never matches
 
     try:
@@ -275,7 +263,7 @@ def main():
                 continue
 
             # Mode check (polled directly, not event-based)
-            mode = poll_mode()
+            mode = poll_mode(preset)
             if mode == Mode.OFF:
                 time.sleep(0.05)
                 continue
@@ -306,8 +294,17 @@ def main():
                             print(f"[{auto_c:7s}] -> wait")
                         last_log_action = action
 
-                # Kill Command — off-GCD, press whenever available + not casting
+                # Cooldowns — press when F held + WA box shows PINK (off CD)
                 now = time.time()
+                if preset["USE_CDS"] and preset["HOLD_CD_KEY"] and keyboard.is_pressed(preset["HOLD_CD_KEY"]):
+                    for cd_box, cd_key in CD_BOXES.items():
+                        if (colors[cd_box] == Color.PINK
+                                and now - last_press_cd[cd_box] >= REPRESS_INTERVAL):
+                            pydirectinput.press(cd_key)
+                            last_press_cd[cd_box] = now
+                            break  # one CD per loop to avoid input flood
+
+                # Kill Command — off-GCD, press whenever available + not casting
                 if (colors[Box.KILL_CMD] == Color.BLUE
                         and colors[Box.STEADY] != Color.YELLOW
                         and now - last_press_kc >= REPRESS_INTERVAL):
