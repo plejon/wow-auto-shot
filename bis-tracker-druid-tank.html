@@ -152,7 +152,12 @@
     font-size: 1.05em; border-radius: 8px;
   }
   .farm-phase-1 { background: #1a3a1a; color: #86efac; border: 1px solid #2a5a2a; }
+  .farm-phase-quest { background: #2a2a1a; color: #fbbf24; border: 1px solid #4a4a2a; }
   .farm-phase-2 { background: #3a1a1a; color: #f87171; border: 1px solid #5a2a2a; }
+  .quest-zone-badge {
+    display: inline-block; font-size: 0.65em; padding: 2px 8px; border-radius: 4px;
+    font-weight: 700; margin-left: 8px; background: #4a3a0a; color: #fbbf24;
+  }
   .view-toggle { text-align: center; margin-bottom: 16px; }
   .view-toggle button {
     background: var(--card); color: var(--text); border: 1px solid var(--border);
@@ -469,6 +474,44 @@ const GEMS = [
 const GEM_SLOT_ORDER = ["Meta","Red","Yellow","Blue"];
 
 // =====================================================================
+// QUEST ZONE GROUPS — do these between dungeon runs
+// =====================================================================
+const QUEST_ZONES = [
+  {zone:"Shadowmoon Valley", order:1, reason:"Bear BiS wrist + hands + waist, cat feet, dungeon quest head", quests:[
+    "Quest — Cipher of Damnation",
+    "Quest — Akama's Promise",
+    "Quest — Enraged Spirits of Air",
+    "Quest — The Flesh Lies",
+    "Quest — The Warlord's Hideout",
+  ]},
+  {zone:"Nagrand", order:2, reason:"Bear+cat BiS legs (Clefthoof Hide), bear+cat idol", quests:[
+    "Quest — Showdown",
+    "Quest — Colossal Menace",
+    "Quest — Gurok the Usurper",
+    "Quest — Hero of the Mag'hari",
+  ]},
+  {zone:"Netherstorm", order:3, reason:"Feral starter weapon, bear neck, cat trinket, legs alt", quests:[
+    "Quest — Nexus-King Salhadaar",
+    "Quest — Hitting the Motherlode",
+    "Quest — Ar'kelos the Guardian",
+    "Quest — Special Delivery to Shattrath",
+    "Quest — Shutting Down Manaforge Ara",
+  ]},
+  {zone:"Terokkar / Auchindoun", order:4, reason:"Cat wrist, resto cloak quest chain", quests:[
+    "Quest — The Soul Devices",
+    "Quest — Brother Against Brother",
+  ]},
+  {zone:"Blade's Edge / Scryer / Aldor", order:5, reason:"Cat waist + ring (Scryer/Aldor), resto neck", quests:[
+    "Quest — Turning Point",
+    "Quest — Deathblow to the Legion",
+    "Quest — Natasha's Mercy",
+  ]},
+  {zone:"Hellfire Peninsula", order:6, reason:"Resto boots", quests:[
+    "Quest — Hellfire Peninsula",
+  ]},
+];
+
+// =====================================================================
 // DUNGEON PRIORITY — fresh 70 farm route
 // =====================================================================
 const DUNGEON_PRIO = {
@@ -696,6 +739,33 @@ function renderFarmView() {
   c.appendChild(ph1);
 
   renderFarmDungeonBlock(c, DUNGEON_PRIO, "normal");
+
+  // Quest rewards by zone
+  const phQ = document.createElement("div");
+  phQ.className = "farm-phase-header farm-phase-quest";
+  phQ.textContent = "Quests — Free Gear Between Runs";
+  c.appendChild(phQ);
+
+  for (const qz of QUEST_ZONES) {
+    const questItems = ITEMS.filter(i => !i.dungeon && i.source.startsWith("Quest")).filter(specMatch)
+      .filter(i => qz.quests.some(q => i.source.includes(q.replace("Quest — ", ""))));
+    if (!questItems.length) continue;
+    const cc = questItems.filter(isChecked).length;
+    const allDone = cc === questItems.length;
+    const sec = document.createElement("div"); sec.className = "dungeon-section";
+    const hdr = document.createElement("div"); hdr.className = "dungeon-header";
+    hdr.innerHTML = `
+      <span>
+        <span class="quest-zone-badge">#${qz.order}</span>
+        ${qz.zone}
+        <span class="prio-reason">${qz.reason}</span>
+      </span>
+      <span class="dungeon-progress${allDone ? " done" : ""}">${cc}/${questItems.length}</span>
+    `;
+    const div = document.createElement("div"); div.className = "dungeon-items";
+    questItems.forEach(i => div.appendChild(makeItemRow(i, questItems)));
+    sec.appendChild(hdr); sec.appendChild(div); c.appendChild(sec);
+  }
 
   // Craft & Rep section (between phases — work on these while farming normals)
   const craftRepHeader = document.createElement("div");
