@@ -773,23 +773,59 @@ function renderFarmView() {
     sec.appendChild(hdr); sec.appendChild(div); c.appendChild(sec);
   }
 
-  // Craft & Rep section (between phases — work on these while farming normals)
+  // Crafted, Rep, Badges — grouped by category
+  const NON_DUNGEON_GROUPS = [
+    {key:"badges", label:"Badge of Justice", icon:"#B", match: i => i.source.includes("Badge of Justice")},
+    {key:"rep-ce", label:"Cenarion Expedition", icon:"CE", match: i => i.source.includes("Cenarion Expedition")},
+    {key:"rep-lc", label:"Lower City", icon:"LC", match: i => i.source.includes("Lower City")},
+    {key:"rep-kot", label:"Keepers of Time", icon:"KoT", match: i => i.source.includes("Keepers of Time")},
+    {key:"rep-sha", label:"Sha'tar", icon:"Sha", match: i => i.source.includes("Sha'tar")},
+    {key:"rep-con", label:"Consortium", icon:"Con", match: i => i.source.includes("Consortium")},
+    {key:"rep-ogr", label:"Ogri'la", icon:"Ogr", match: i => i.source.includes("Ogri'la")},
+    {key:"craft-lw", label:"Leatherworking", icon:"LW", match: i => i.source.includes("Crafted") && (i.source.includes("LW") || i.source.includes("Tribal"))},
+    {key:"craft-tailor", label:"Tailoring", icon:"TL", match: i => i.source.includes("Crafted") && i.source.includes("Tailoring")},
+    {key:"craft-other", label:"Other Crafted (JC, BS, Eng)", icon:"CR", match: i => i.source.includes("Crafted") && !i.source.includes("LW") && !i.source.includes("Tribal") && !i.source.includes("Tailoring")},
+    {key:"pvp", label:"PvP Honor Gear", icon:"PvP", match: i => i.source.includes("Honor")},
+    {key:"boe", label:"World Drop BoE", icon:"$", match: i => i.source.includes("World drop")},
+  ];
+
+  const nonDungeonItems = ITEMS.filter(i => !i.dungeon && !i.source.startsWith("Quest")).filter(specMatch);
+
   const craftRepHeader = document.createElement("div");
   craftRepHeader.className = "farm-tier-header farm-tier-2";
-  craftRepHeader.textContent = "Craft & Rep — Work Towards While Farming";
+  craftRepHeader.textContent = "Crafted, Reputation & Badges";
   c.appendChild(craftRepHeader);
 
-  const keyItems = ITEMS.filter(i => !i.dungeon && (i.tags.includes("bis") || i.tags.includes("craft"))).filter(specMatch);
-  if (keyItems.length) {
+  const placed = new Set();
+  for (const grp of NON_DUNGEON_GROUPS) {
+    const items = nonDungeonItems.filter(i => !placed.has(itemKey(i)) && grp.match(i));
+    if (!items.length) continue;
+    items.forEach(i => placed.add(itemKey(i)));
+    const cc = items.filter(isChecked).length;
+    const allDone = cc === items.length;
     const sec = document.createElement("div"); sec.className = "dungeon-section";
     const hdr = document.createElement("div"); hdr.className = "dungeon-header";
-    const cc = keyItems.filter(isChecked).length;
     hdr.innerHTML = `
-      <span>Crafted, Rep & Badge Items</span>
-      <span class="dungeon-progress${cc === keyItems.length ? " done" : ""}">${cc}/${keyItems.length}</span>
+      <span>
+        <span class="quest-zone-badge">${grp.icon}</span>
+        ${grp.label}
+      </span>
+      <span class="dungeon-progress${allDone ? " done" : ""}">${cc}/${items.length}</span>
     `;
     const div = document.createElement("div"); div.className = "dungeon-items";
-    keyItems.forEach(i => div.appendChild(makeItemRow(i, keyItems)));
+    items.forEach(i => div.appendChild(makeItemRow(i, items)));
+    sec.appendChild(hdr); sec.appendChild(div); c.appendChild(sec);
+  }
+
+  // Catch any ungrouped non-dungeon non-quest items
+  const remaining = nonDungeonItems.filter(i => !placed.has(itemKey(i)));
+  if (remaining.length) {
+    const sec = document.createElement("div"); sec.className = "dungeon-section";
+    const hdr = document.createElement("div"); hdr.className = "dungeon-header";
+    const cc = remaining.filter(isChecked).length;
+    hdr.innerHTML = `<span>Other</span><span class="dungeon-progress">${cc}/${remaining.length}</span>`;
+    const div = document.createElement("div"); div.className = "dungeon-items";
+    remaining.forEach(i => div.appendChild(makeItemRow(i, remaining)));
     sec.appendChild(hdr); sec.appendChild(div); c.appendChild(sec);
   }
 
