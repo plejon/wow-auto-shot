@@ -135,6 +135,24 @@
   .item-prio-2 { background: #1a2d4a; color: #60a5fa; }
   .item-prio-3 { background: #2d1a4a; color: #a78bfa; }
   .item-prio-4 { background: #1e293b; color: #94a3b8; }
+  .item-row.heroic-dim { opacity: 0.4; }
+  .item-row.heroic-dim:hover { opacity: 0.7; }
+  .heroic-label {
+    display: inline-block; font-size: 0.6em; padding: 1px 5px; border-radius: 3px;
+    margin-left: 3px; vertical-align: middle; font-weight: 700;
+    background: #4a1a1a; color: #f87171;
+  }
+  .normal-label {
+    display: inline-block; font-size: 0.6em; padding: 1px 5px; border-radius: 3px;
+    margin-left: 3px; vertical-align: middle; font-weight: 700;
+    background: #1a3a1a; color: #86efac;
+  }
+  .farm-phase-header {
+    text-align: center; padding: 12px; margin: 20px 0 12px; font-weight: 700;
+    font-size: 1.05em; border-radius: 8px;
+  }
+  .farm-phase-1 { background: #1a3a1a; color: #86efac; border: 1px solid #2a5a2a; }
+  .farm-phase-2 { background: #3a1a1a; color: #f87171; border: 1px solid #5a2a2a; }
   .view-toggle { text-align: center; margin-bottom: 16px; }
   .view-toggle button {
     background: var(--card); color: var(--text); border: 1px solid var(--border);
@@ -611,17 +629,31 @@ function renderSlotView() {
   }
 }
 
-function renderFarmView() {
-  const c = document.getElementById("farm-view"); c.innerHTML = "";
-  // Group dungeons by tier
+function makeFarmItemRow(item, list) {
+  const row = makeItemRow(item, list);
+  const isHeroic = item.difficulty === "Heroic";
+  if (isHeroic) row.classList.add("heroic-dim");
+  // Inject difficulty label after the tags
+  const nameEl = row.querySelector(".item-name");
+  if (nameEl) {
+    if (isHeroic) nameEl.insertAdjacentHTML("beforeend", '<span class="heroic-label">HEROIC</span>');
+    else if (item.dungeon) nameEl.insertAdjacentHTML("beforeend", '<span class="normal-label">NORMAL</span>');
+  }
+  return row;
+}
+
+function renderFarmDungeonBlock(c, dungeons, phase) {
   const allDungeons = Object.entries(DUNGEON_PRIO).sort((a,b) => a[1].order - b[1].order);
 
   for (const tierDef of PRIO_TIERS) {
     const tierDungeons = allDungeons.filter(([,p]) => p.tier === tierDef.tier);
     if (!tierDungeons.length) continue;
 
-    // Check if any items in this tier match spec filter
-    const tierItems = tierDungeons.flatMap(([dName]) => ITEMS.filter(i => i.dungeon === dName).filter(specMatch));
+    // Filter items per phase
+    const tierItems = tierDungeons.flatMap(([dName]) =>
+      ITEMS.filter(i => i.dungeon === dName).filter(specMatch)
+        .filter(i => phase === "normal" ? i.difficulty === "Normal" : i.difficulty === "Heroic")
+    );
     if (!tierItems.length) continue;
 
     const tierHeader = document.createElement("div");
@@ -630,34 +662,45 @@ function renderFarmView() {
     c.appendChild(tierHeader);
 
     for (const [dName, prio] of tierDungeons) {
-      const items = ITEMS.filter(i => i.dungeon === dName).filter(specMatch);
+      const items = ITEMS.filter(i => i.dungeon === dName).filter(specMatch)
+        .filter(i => phase === "normal" ? i.difficulty === "Normal" : i.difficulty === "Heroic");
       if (!items.length) continue;
       const cc = items.filter(isChecked).length;
       const allDone = cc === items.length;
 
       const sec = document.createElement("div"); sec.className = "dungeon-section";
       const hdr = document.createElement("div"); hdr.className = "dungeon-header";
-      const diffs = [...new Set(items.map(i => i.difficulty))].join(" + ");
       hdr.innerHTML = `
         <span>
           <span class="prio-badge prio-${prio.tier}">#${prio.order}</span>
           ${dName}
-          <span style="color:var(--text-dim);font-weight:400;font-size:0.85em">(${diffs})</span>
           <span class="prio-reason">${prio.reason}</span>
         </span>
         <span class="dungeon-progress${allDone ? " done" : ""}">${cc}/${items.length}</span>
       `;
 
       const div = document.createElement("div"); div.className = "dungeon-items";
-      items.forEach(i => div.appendChild(makeItemRow(i, items)));
+      items.forEach(i => div.appendChild(makeFarmItemRow(i, items)));
       sec.appendChild(hdr); sec.appendChild(div); c.appendChild(sec);
     }
   }
+}
 
-  // Also show key crafted / rep items at the bottom
+function renderFarmView() {
+  const c = document.getElementById("farm-view"); c.innerHTML = "";
+
+  // Phase 1: Normal dungeons
+  const ph1 = document.createElement("div");
+  ph1.className = "farm-phase-header farm-phase-1";
+  ph1.textContent = "Phase 1 — Normal Dungeons (start here)";
+  c.appendChild(ph1);
+
+  renderFarmDungeonBlock(c, DUNGEON_PRIO, "normal");
+
+  // Craft & Rep section (between phases — work on these while farming normals)
   const craftRepHeader = document.createElement("div");
   craftRepHeader.className = "farm-tier-header farm-tier-2";
-  craftRepHeader.textContent = "Craft & Rep — Work Towards";
+  craftRepHeader.textContent = "Craft & Rep — Work Towards While Farming";
   c.appendChild(craftRepHeader);
 
   const keyItems = ITEMS.filter(i => !i.dungeon && (i.tags.includes("bis") || i.tags.includes("craft"))).filter(specMatch);
@@ -673,6 +716,14 @@ function renderFarmView() {
     keyItems.forEach(i => div.appendChild(makeItemRow(i, keyItems)));
     sec.appendChild(hdr); sec.appendChild(div); c.appendChild(sec);
   }
+
+  // Phase 2: Heroic dungeons
+  const ph2 = document.createElement("div");
+  ph2.className = "farm-phase-header farm-phase-2";
+  ph2.textContent = "Phase 2 — Heroic Dungeons (once geared from normals)";
+  c.appendChild(ph2);
+
+  renderFarmDungeonBlock(c, DUNGEON_PRIO, "heroic");
 }
 
 function renderDungeonView() {
