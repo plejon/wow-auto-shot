@@ -229,7 +229,7 @@ const ITEMS = [
   {slot:"Head",rank:1,name:"Wolfshead Helm",wowheadId:8345,source:"Crafted (LW) BoE",dungeon:null,difficulty:null,stats:"Proc: 20 energy on powershift",quality:"rare",specs:["cat"],tags:["bis","craft"],note:"Mandatory for cat DPS"},
   {slot:"Head",rank:1,name:"Cobrascale Hood",wowheadId:29502,source:"Crafted (Tribal LW)",dungeon:null,difficulty:null,stats:"48 sta, 34 agi, 40 AP, 2 sockets",quality:"epic",specs:["bear"],tags:["bis","craft"]},
   {slot:"Head",rank:1,name:"Whitemend Hood",wowheadId:24264,source:"Crafted (Tailoring) BoE",dungeon:null,difficulty:null,stats:"15 int, 11 mp5, 79 heal, 3 sockets",quality:"epic",specs:["resto"],tags:["bis","craft"]},
-  {slot:"Head",rank:2,name:"Helm of the Claw",wowheadId:28182,source:"Quest — The Warlord's Hideout (Shattered Halls)",dungeon:null,difficulty:null,stats:"39 sta, 33 agi, 22 hit",quality:"rare",specs:["bear"],tags:[]},
+  {slot:"Head",rank:2,name:"Helm of the Claw",wowheadId:28182,source:"Quest — The Warlord's Hideout (Shattered Halls)",dungeon:"Shattered Halls",difficulty:"Normal",stats:"39 sta, 33 agi, 22 hit",quality:"rare",specs:["bear"],tags:[]},
   {slot:"Head",rank:3,name:"Cowl of Naaru Blessings",wowheadId:32090,source:"Badge of Justice (50)",dungeon:null,difficulty:null,stats:"29 int, 66 heal, 2 sockets",quality:"epic",specs:["resto"],tags:[]},
   {slot:"Head",rank:4,name:"Mask of the Deceiver",wowheadId:32087,source:"Badge of Justice (50)",dungeon:null,difficulty:null,stats:"43 sta, 30 agi, 60 AP",quality:"epic",specs:["bear"],tags:[]},
   {slot:"Head",rank:5,name:"Wastewalker Helm",wowheadId:28224,source:"Heroic Old Hillsbrad — Epoch Hunter",dungeon:"Old Hillsbrad",difficulty:"Heroic",stats:"36 sta, 29 agi, 58 AP",quality:"rare",specs:["bear"],tags:[]},
@@ -250,6 +250,7 @@ const ITEMS = [
   // ======================== SHOULDERS ========================
   {slot:"Shoulders",rank:1,name:"Primal Mooncloth Shoulders",wowheadId:21874,source:"Crafted (Tailoring) BoP",dungeon:null,difficulty:null,stats:"16 int, 92 heal, 8 mp5",quality:"epic",specs:["resto"],tags:["bis","craft"]},
   {slot:"Shoulders",rank:1,name:"Mantle of Perenolde",wowheadId:27434,source:"Old Hillsbrad — Lieutenant Drake",dungeon:"Old Hillsbrad",difficulty:"Normal",stats:"27 sta, 23 agi, 20 AP, 2 sockets",quality:"rare",specs:["bear","cat"],tags:["bis"]},
+  {slot:"Shoulders",rank:2,name:"Expedition Scout's Epaulets",wowheadId:25790,source:"Quest — Fel Embers (Hellfire Peninsula)",dungeon:null,difficulty:null,stats:"25 agi, 50 AP, 24 hit",quality:"rare",specs:["cat"],tags:[]},
   {slot:"Shoulders",rank:2,name:"Wastewalker Shoulderpads",wowheadId:27797,source:"Heroic Auchenai Crypts — Shirrak",dungeon:"Auchenai Crypts",difficulty:"Heroic",stats:"25 sta, 25 agi, 34 AP, 16 hit",quality:"rare",specs:["bear","cat"],tags:[]},
   {slot:"Shoulders",rank:3,name:"Shoulderpads of Assassination",wowheadId:27776,source:"Sethekk Halls — Talon King Ikiss",dungeon:"Sethekk Halls",difficulty:"Normal",stats:"31 sta, 22 agi, 44 AP",quality:"rare",specs:["bear","cat"],tags:[]},
   {slot:"Shoulders",rank:4,name:"Mantle of Shadowy Embrace",wowheadId:32080,source:"Heroic Blood Furnace",dungeon:"Blood Furnace",difficulty:"Heroic",stats:"33 sta, 25 agi, 50 AP",quality:"epic",specs:["bear"],tags:[]},
@@ -267,6 +268,7 @@ const ITEMS = [
   {slot:"Back",rank:4,name:"Blood Knight War Cloak",wowheadId:29382,source:"Badge of Justice (25)",dungeon:null,difficulty:null,stats:"23 agi, 48 AP",quality:"epic",specs:["bear","cat"],tags:[]},
   {slot:"Back",rank:5,name:"Auchenai Death Shroud",wowheadId:27878,source:"Heroic Auchenai Crypts",dungeon:"Auchenai Crypts",difficulty:"Heroic",stats:"15 agi, 36 AP, 17 hit",quality:"rare",specs:["bear","cat"],tags:[]},
   {slot:"Back",rank:6,name:"Avian Cloak of Feathers",wowheadId:27946,source:"Sethekk Halls — Talon King Ikiss",dungeon:"Sethekk Halls",difficulty:"Normal",stats:"18 int, 42 heal",quality:"rare",specs:["resto"],tags:[]},
+  {slot:"Back",rank:7,name:"Nomad's Woven Cloak",wowheadId:28031,source:"Quest — Bring Me The Egg! (Terokkar)",dungeon:null,difficulty:null,stats:"18 agi, 14 hit",quality:"rare",specs:["cat"],tags:[]},
 
   // ======================== CHEST ========================
   {slot:"Chest",rank:1,name:"Heavy Clefthoof Vest",wowheadId:25689,source:"Crafted (LW)",dungeon:null,difficulty:null,stats:"45 sta, 30 agi, 24 def, 3 sockets",quality:"rare",specs:["bear"],tags:["bis","craft"]},
@@ -274,26 +276,28 @@ const ITEMS = [
   {slot:"Chest",rank:1,name:"Primal Mooncloth Robe",wowheadId:21875,source:"Crafted (Tailoring) BoP",dungeon:null,difficulty:null,stats:"20 int, 121 heal, 2 sockets",quality:"epic",specs:["resto"],tags:["bis","craft"]},
   {slot:"Chest",rank:2,name:"Tunic of Assassination",wowheadId:28204,source:"Mechanar — Sepethrea",dungeon:"The Mechanar",difficulty:"Normal",stats:"33 sta, 36 agi, 72 AP",quality:"rare",specs:["bear","cat"],tags:[]},
   {slot:"Chest",rank:3,name:"Windhawk Hauberk",wowheadId:29522,source:"Crafted (Tribal LW) BoP",dungeon:null,difficulty:null,stats:"29 int, 74 heal, 3 sockets",quality:"epic",specs:["resto"],tags:["craft"]},
-  {slot:"Chest",rank:4,name:"Vest of Vengeance",wowheadId:24396,source:"Blood Furnace — Keli'dan",dungeon:"Blood Furnace",difficulty:"Normal",stats:"25 agi, 56 AP, 14 hit",quality:"rare",specs:["cat"],tags:[]},
+  {slot:"Chest",rank:4,name:"Auchenai Monk's Tunic",wowheadId:29340,source:"Quest — Everything Will Be Alright (Auchenai Crypts)",dungeon:"Auchenai Crypts",difficulty:"Normal",stats:"24 agi, 12 dodge, 40 AP, 12 hit",quality:"rare",specs:["cat"],tags:[]},
+  {slot:"Chest",rank:5,name:"Vest of Vengeance",wowheadId:24396,source:"Blood Furnace — Keli'dan",dungeon:"Blood Furnace",difficulty:"Normal",stats:"25 agi, 56 AP, 14 hit",quality:"rare",specs:["cat"],tags:[]},
   {slot:"Chest",rank:5,name:"Wastewalker Tunic",wowheadId:28264,source:"Heroic Blood Furnace — Keli'dan",dungeon:"Blood Furnace",difficulty:"Heroic",stats:"34 sta, 28 agi, 56 AP, 2 sockets",quality:"rare",specs:["bear"],tags:[]},
 
   // ======================== WRIST ========================
   {slot:"Wrist",rank:1,name:"Umberhowl's Collar",wowheadId:30944,source:"Quest — Cipher of Damnation (Shadowmoon Valley)",dungeon:null,difficulty:null,stats:"25 sta, 15 agi, 12 def, 1 socket",quality:"rare",specs:["bear"],tags:["bis"]},
   {slot:"Wrist",rank:1,name:"Nightfall Wristguards",wowheadId:29246,source:"Heroic Old Hillsbrad — Epoch Hunter",dungeon:"Old Hillsbrad",difficulty:"Heroic",stats:"24 agi, 46 AP",quality:"epic",specs:["cat"],tags:["bis"]},
   {slot:"Wrist",rank:1,name:"Bindings of the Timewalker",wowheadId:29183,source:"Keepers of Time — Exalted",dungeon:null,difficulty:null,stats:"12 int, 24 sta, 64 heal",quality:"rare",specs:["resto"],tags:["bis"]},
-  {slot:"Wrist",rank:2,name:"Spymistress's Wristguards",wowheadId:28171,source:"Quest — The Soul Devices (Auchindoun)",dungeon:null,difficulty:null,stats:"18 agi, 14 hit",quality:"rare",specs:["cat"],tags:[]},
+  {slot:"Wrist",rank:2,name:"Spymistress's Wristguards",wowheadId:28171,source:"Quest — The Soul Devices (Auchenai Crypts)",dungeon:"Auchenai Crypts",difficulty:"Normal",stats:"18 agi, 14 hit",quality:"rare",specs:["cat"],tags:[]},
   {slot:"Wrist",rank:2,name:"Windhawk Bracers",wowheadId:29523,source:"Crafted (Tribal LW) BoP",dungeon:null,difficulty:null,stats:"17 int, 47 heal, 1 socket",quality:"epic",specs:["resto"],tags:["craft"]},
   {slot:"Wrist",rank:3,name:"Forestheart Bracers",wowheadId:29263,source:"Heroic Shattered Halls",dungeon:"Shattered Halls",difficulty:"Heroic",stats:"28 sta, 16 agi, 22 def",quality:"epic",specs:["bear"],tags:[]},
   {slot:"Wrist",rank:4,name:"Bands of the Benevolent",wowheadId:29249,source:"Heroic Sethekk Halls — Talon King Ikiss",dungeon:"Sethekk Halls",difficulty:"Heroic",stats:"20 int, 46 heal",quality:"rare",specs:["resto"],tags:[]},
 
   // ======================== HANDS ========================
   {slot:"Hands",rank:1,name:"Verdant Gloves",wowheadId:30943,source:"Quest — Akama's Promise (Shadowmoon Valley)",dungeon:null,difficulty:null,stats:"30 sta, 22 agi, 14 def, 2 sockets",quality:"rare",specs:["bear"],tags:["bis"]},
-  {slot:"Hands",rank:1,name:"Gloves of the Unbound",wowheadId:28396,source:"Arcatraz — Zereketh / Soccothrates",dungeon:"The Arcatraz",difficulty:"Normal",stats:"27 sta, 24 agi, 22 hit",quality:"rare",specs:["cat"],tags:["bis"]},
+  {slot:"Hands",rank:1,name:"Gloves of the Unbound",wowheadId:28396,source:"Arcatraz — Zereketh / Soccothrates",dungeon:"The Arcatraz",difficulty:"Normal",stats:"27 sta, 24 agi, 22 hit",quality:"rare",specs:["bear","cat"],tags:["bis"]},
   {slot:"Hands",rank:1,name:"Gloves of the Living Touch",wowheadId:29506,source:"Crafted (LW)",dungeon:null,difficulty:null,stats:"18 int, 22 spi, 77 heal",quality:"epic",specs:["resto"],tags:["bis","craft"]},
   {slot:"Hands",rank:2,name:"Windslayer Wraps",wowheadId:29507,source:"Crafted (LW 365)",dungeon:null,difficulty:null,stats:"30 sta, 20 agi, 40 AP, 2 sockets",quality:"epic",specs:["bear","cat"],tags:["craft"]},
   {slot:"Hands",rank:3,name:"Cobrascale Gloves",wowheadId:29503,source:"Crafted (Tribal LW)",dungeon:null,difficulty:null,stats:"24 sta, 25 agi, 50 AP",quality:"epic",specs:["bear","cat"],tags:["craft"]},
   {slot:"Hands",rank:4,name:"Fel Leather Gloves",wowheadId:25685,source:"Crafted (LW) BoE",dungeon:null,difficulty:null,stats:"36 AP, 25 hit, 17 crit",quality:"rare",specs:["cat"],tags:["craft"]},
-  {slot:"Hands",rank:5,name:"Wastewalker Gloves",wowheadId:27531,source:"Shattered Halls — Warchief Kargath",dungeon:"Shattered Halls",difficulty:"Normal",stats:"22 agi, 34 AP, 16 hit",quality:"rare",specs:["cat"],tags:[]},
+  {slot:"Hands",rank:5,name:"Handgrips of Assassination",wowheadId:27509,source:"Black Morass — Aeonus",dungeon:"The Black Morass",difficulty:"Normal",stats:"22 agi, 44 AP, 14 hit",quality:"rare",specs:["cat"],tags:[]},
+  {slot:"Hands",rank:6,name:"Wastewalker Gloves",wowheadId:27531,source:"Shattered Halls — Warchief Kargath",dungeon:"Shattered Halls",difficulty:"Normal",stats:"22 agi, 34 AP, 16 hit",quality:"rare",specs:["cat"],tags:[]},
   {slot:"Hands",rank:6,name:"Bloody Surgeon's Mitts",wowheadId:24393,source:"Blood Furnace — Keli'dan",dungeon:"Blood Furnace",difficulty:"Normal",stats:"20 int, 31 heal, 2 sockets",quality:"rare",specs:["resto"],tags:[]},
   {slot:"Hands",rank:7,name:"Flesh Handler's Gauntlets",wowheadId:30341,source:"Quest — The Flesh Lies (Shadowmoon Valley)",dungeon:null,difficulty:null,stats:"28 sta, 19 agi, 15 hit, 30 AP",quality:"uncommon",specs:["bear"],tags:[]},
 
@@ -303,6 +307,7 @@ const ITEMS = [
   {slot:"Waist",rank:1,name:"Primal Mooncloth Belt",wowheadId:21873,source:"Crafted (Tailoring) BoP",dungeon:null,difficulty:null,stats:"12 int, 81 heal, 2 sockets",quality:"epic",specs:["resto"],tags:["bis","craft"]},
   {slot:"Waist",rank:2,name:"Tree-Mender's Belt",wowheadId:29264,source:"Heroic Hellfire Ramparts",dungeon:"Hellfire Ramparts",difficulty:"Heroic",stats:"33 sta, 22 agi, 20 def",quality:"epic",specs:["bear"],tags:[]},
   {slot:"Waist",rank:2,name:"Socrethar's Girdle",wowheadId:30372,source:"Quest — Turning Point (Scryer)",dungeon:null,difficulty:null,stats:"20 agi, 40 AP, 18 hit",quality:"rare",specs:["cat"],tags:[]},
+  {slot:"Waist",rank:3,name:"Naaru Belt of Precision",wowheadId:31464,source:"Quest — How to Break Into the Arcatraz",dungeon:"The Arcatraz",difficulty:"Normal",stats:"18 agi, 12 dodge, 36 AP, 14 hit",quality:"rare",specs:["cat"],tags:[]},
   {slot:"Waist",rank:2,name:"Windhawk Belt",wowheadId:29524,source:"Crafted (Tribal LW) BoP",dungeon:null,difficulty:null,stats:"19 int, 65 heal, 2 sockets",quality:"epic",specs:["resto"],tags:["craft"]},
   {slot:"Waist",rank:3,name:"Epoch's Whispering Cinch",wowheadId:27911,source:"Heroic Old Hillsbrad — Epoch Hunter",dungeon:"Old Hillsbrad",difficulty:"Heroic",stats:"22 agi, 44 AP, 14 hit",quality:"rare",specs:["cat"],tags:[]},
   {slot:"Waist",rank:4,name:"Cord of Sanctification",wowheadId:29250,source:"Heroic Old Hillsbrad",dungeon:"Old Hillsbrad",difficulty:"Heroic",stats:"24 int, 62 heal",quality:"rare",specs:["resto"],tags:[]},
@@ -342,6 +347,7 @@ const ITEMS = [
   {slot:"Ring",rank:3,name:"Ancestral Band",wowheadId:29168,source:"Cenarion Expedition — Honored",dungeon:null,difficulty:null,stats:"15 int, 57 heal",quality:"rare",specs:["resto"],tags:[]},
   {slot:"Ring",rank:4,name:"Ravenclaw Band",wowheadId:27925,source:"Sethekk Halls — Talon King Ikiss",dungeon:"Sethekk Halls",difficulty:"Normal",stats:"20 agi, 30 AP, 13 hit",quality:"rare",specs:["bear","cat"],tags:[]},
   {slot:"Ring",rank:5,name:"Kaylaan's Signet",wowheadId:30860,source:"Quest — Deathblow to the Legion (Aldor)",dungeon:null,difficulty:null,stats:"15 agi, 50 AP, 10 hit",quality:"rare",specs:["cat"],tags:[]},
+  {slot:"Ring",rank:5,name:"Slayer's Mark of the Redemption",wowheadId:31077,source:"Quest — Dissension Amongst the Ranks (Shadowmoon Valley)",dungeon:null,difficulty:null,stats:"15 agi, 50 AP, 10 hit",quality:"rare",specs:["cat"],tags:[]},
   {slot:"Ring",rank:6,name:"Nexus-Prince's Ring of Balance",wowheadId:31919,source:"Heroic Mana-Tombs — Nexus-Prince Shaffar",dungeon:"Mana-Tombs",difficulty:"Heroic",stats:"22 sta, 18 agi, 14 def",quality:"epic",specs:["bear"],tags:[]},
   {slot:"Ring",rank:7,name:"Ring of Convalescence",wowheadId:29169,source:"Lower City — Honored",dungeon:null,difficulty:null,stats:"15 int, 57 heal",quality:"rare",specs:["resto"],tags:[]},
 
@@ -477,37 +483,37 @@ const GEM_SLOT_ORDER = ["Meta","Red","Yellow","Blue"];
 // QUEST ZONE GROUPS — do these between dungeon runs
 // =====================================================================
 const QUEST_ZONES = [
-  {zone:"Shadowmoon Valley", order:1, reason:"Bear BiS wrist + hands + waist, cat feet, dungeon quest head", quests:[
+  {zone:"Shadowmoon Valley", order:1, reason:"Bear BiS wrist + hands + waist, cat feet + ring", quests:[
     "Quest — Cipher of Damnation",
     "Quest — Akama's Promise",
     "Quest — Enraged Spirits of Air",
     "Quest — The Flesh Lies",
-    "Quest — The Warlord's Hideout",
+    "Quest — Dissension Amongst the Ranks",
   ]},
-  {zone:"Nagrand", order:2, reason:"Bear+cat BiS legs (Clefthoof Hide), bear+cat idol", quests:[
+  {zone:"Nagrand", order:2, reason:"Bear+cat BiS legs (Clefthoof Hide), bear+cat idol, bear neck (Horde)", quests:[
     "Quest — Showdown",
     "Quest — Colossal Menace",
     "Quest — Gurok the Usurper",
     "Quest — Hero of the Mag'hari",
   ]},
-  {zone:"Netherstorm", order:3, reason:"Feral starter weapon, bear neck, cat trinket, legs alt", quests:[
+  {zone:"Netherstorm", order:3, reason:"Feral starter weapon, bear neck, cat trinket + ring, legs alt", quests:[
     "Quest — Nexus-King Salhadaar",
     "Quest — Hitting the Motherlode",
     "Quest — Ar'kelos the Guardian",
     "Quest — Special Delivery to Shattrath",
     "Quest — Shutting Down Manaforge Ara",
   ]},
-  {zone:"Terokkar / Auchindoun", order:4, reason:"Cat wrist, resto cloak quest chain", quests:[
-    "Quest — The Soul Devices",
-    "Quest — Brother Against Brother",
-  ]},
-  {zone:"Blade's Edge / Scryer / Aldor", order:5, reason:"Cat waist + ring (Scryer/Aldor), resto neck", quests:[
+  {zone:"Terokkar / Auchindoun", order:4, reason:"Cat cloak, resto neck", quests:[
+    "Quest — Bring Me The Egg",
     "Quest — Turning Point",
+  ]},
+  {zone:"Scryer / Aldor Quests", order:5, reason:"Cat waist + ring (faction-specific)", quests:[
     "Quest — Deathblow to the Legion",
     "Quest — Natasha's Mercy",
   ]},
-  {zone:"Hellfire Peninsula", order:6, reason:"Resto boots", quests:[
+  {zone:"Hellfire Peninsula", order:6, reason:"Cat shoulders, resto boots", quests:[
     "Quest — Hellfire Peninsula",
+    "Quest — Fel Embers",
   ]},
 ];
 
@@ -520,15 +526,15 @@ const DUNGEON_PRIO = {
   "Sethekk Halls":     {tier:1, order:3,  label:"Run First",     reason:"Bear+cat shoulders + ring, resto cloak, Lower City rep"},
   "The Botanica":      {tier:1, order:4,  label:"Run First",     reason:"Starter feral weapon, resto idol BiS + OH, Sha'tar rep"},
   "Shadow Labyrinth":  {tier:2, order:5,  label:"High Value",    reason:"Resto ring + shoulders + MH, Lower City rep"},
-  "The Black Morass":  {tier:2, order:6,  label:"High Value",    reason:"Bear+cat trinket, cat shoulders, Keepers of Time rep"},
-  "Auchenai Crypts":   {tier:2, order:7,  label:"High Value",    reason:"Resto feet BiS, Lower City rep (heroic: feral cloak + weapon)"},
+  "The Black Morass":  {tier:2, order:6,  label:"High Value",    reason:"Bear+cat trinket, cat hands + shoulders, Keepers of Time rep"},
+  "Auchenai Crypts":   {tier:2, order:7,  label:"High Value",    reason:"Resto feet BiS, cat wrist + chest quests, LC rep (heroic: feral cloak + weapon)"},
   "Blood Furnace":     {tier:2, order:8,  label:"High Value",    reason:"Cat chest, resto hands (heroic: bear chest + shoulders + trinket)"},
   "Underbog":          {tier:3, order:9,  label:"Heroic Targets",reason:"Bear weapon + idol + trinket, bear+cat neck (all heroic)"},
-  "Shattered Halls":   {tier:3, order:10, label:"Heroic Targets",reason:"Cat hands, bear bracers (heroic)"},
+  "Shattered Halls":   {tier:3, order:10, label:"Heroic Targets",reason:"Bear head quest, cat hands (normal), bear bracers (heroic)"},
   "Hellfire Ramparts":  {tier:3, order:11, label:"Heroic Targets",reason:"Resto idol, bear waist (heroic)"},
   "Mana-Tombs":        {tier:3, order:12, label:"Heroic Targets",reason:"Cat legs + ring, bear ring (all heroic)"},
   "The Steamvault":    {tier:3, order:13, label:"Heroic Targets",reason:"Resto legs (heroic)"},
-  "The Arcatraz":      {tier:3, order:14, label:"Heroic Targets",reason:"Cat hands BiS, cat idol (heroic: bear+cat feet)"},
+  "The Arcatraz":      {tier:3, order:14, label:"Heroic Targets",reason:"Cat hands BiS, cat waist quest, cat idol (heroic: bear+cat feet)"},
   "Slave Pens":        {tier:4, order:15, label:"Niche",         reason:"Bear cloak (normal), feral legs (heroic)"},
   "Stratholme":        {tier:4, order:16, label:"Niche",         reason:"Bear idol BiS — quick solo/duo run"},
 };
