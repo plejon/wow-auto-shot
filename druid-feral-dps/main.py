@@ -92,6 +92,11 @@ def decide(colors: dict[Box, Color]) -> str | None:
 
     mangle_missing = colors[Box.MANGLE_DEBUFF] != Color.GREEN
     energy = colors[Box.ENERGY]
+    clearcast = colors[Box.CLEARCAST] == Color.GREEN
+
+    # Clearcasting proc -> always Shred (free, highest damage)
+    if clearcast:
+        return "shred"
 
     # Mangle debuff missing + enough energy (>= 40 = YELLOW or GREEN)
     if mangle_missing and energy in (Color.YELLOW, Color.GREEN):
