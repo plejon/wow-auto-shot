@@ -189,15 +189,8 @@ def create_tray(state: dict) -> pystray.Icon:
 # Hotkeys
 # ------------------------------------------------------------------
 def start_hotkeys(state: dict):
-    def quit_app():
-        print("\n[QUIT]")
-        state["running"] = False
-
-    def toggle_calibrate():
-        state["calibrating"] = not state["calibrating"]
-
-    keyboard.add_hotkey(QUIT_KEY, quit_app)
-    keyboard.add_hotkey(CALIBRATE_KEY, toggle_calibrate)
+    keyboard.add_hotkey(QUIT_KEY, lambda: state.update(running=False))
+    keyboard.add_hotkey(CALIBRATE_KEY, lambda: state.update(calibrating=not state["calibrating"]))
 
 
 # ------------------------------------------------------------------
