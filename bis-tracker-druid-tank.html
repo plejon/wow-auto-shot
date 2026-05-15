@@ -758,9 +758,28 @@ function renderFarmView() {
 
   const allQuestItems = ITEMS.filter(i => !i.dungeon && i.source.startsWith("Quest")).filter(specMatch);
 
+  function getQuestZone(item) {
+    for (const qz of QUEST_ZONES) {
+      if (qz.quests.some(q => item.source.includes(q.replace("Quest — ", "")))) return qz;
+    }
+    return null;
+  }
+
+  function makeQuestSlotRow(item, list) {
+    const row = makeItemRow(item, list);
+    const qz = getQuestZone(item);
+    if (qz) {
+      const nameEl = row.querySelector(".item-name");
+      if (nameEl) nameEl.insertAdjacentHTML("beforeend",
+        `<span class="quest-zone-badge" style="font-size:0.55em">#${qz.order} ${qz.zone}</span>`);
+    }
+    return row;
+  }
+
   if (questGroup === "slot") {
     for (const slot of SLOT_ORDER) {
-      const items = allQuestItems.filter(i => i.slot === slot);
+      const items = allQuestItems.filter(i => i.slot === slot)
+        .sort((a,b) => ((getQuestZone(a)||{order:99}).order - (getQuestZone(b)||{order:99}).order));
       if (!items.length) continue;
       const cc = items.filter(isChecked).length;
       const allDone = cc === items.length;
@@ -768,7 +787,7 @@ function renderFarmView() {
       const hdr = document.createElement("div"); hdr.className = "dungeon-header";
       hdr.innerHTML = `<span>${slot}</span><span class="dungeon-progress${allDone ? " done" : ""}">${cc}/${items.length}</span>`;
       const div = document.createElement("div"); div.className = "dungeon-items";
-      items.forEach(i => div.appendChild(makeItemRow(i, items)));
+      items.forEach(i => div.appendChild(makeQuestSlotRow(i, items)));
       sec.appendChild(hdr); sec.appendChild(div); c.appendChild(sec);
     }
   } else {
