@@ -220,6 +220,7 @@ def main():
 
     sct = mss.mss()
     executor = Executor()
+    print("Loop started — hold key to activate, F8 calibrate, F7 quit")
 
     try:
         while state["running"]:
