@@ -567,6 +567,7 @@ let state = load();
 let currentView = "farm";
 let activeFilter = "all";
 let activeSpec = "all";
+let questGroup = "zone";
 
 function itemKey(item) { return item.name; }
 function isChecked(item) { return !!state[itemKey(item)]; }
@@ -747,28 +748,50 @@ function renderFarmView() {
   // Quest rewards by zone
   const phQ = document.createElement("div");
   phQ.className = "farm-phase-header farm-phase-quest";
-  phQ.textContent = "Quests — Free Gear Between Runs";
+  phQ.style.cssText = "display:flex;justify-content:space-between;align-items:center";
+  phQ.innerHTML = `<span>Quests — Free Gear Between Runs</span>
+    <span style="display:flex;gap:4px">
+      <button class="quest-grp-btn${questGroup==='zone'?' active':''}" onclick="questGroup='zone';render()" style="font-size:0.7em;padding:3px 10px;border-radius:4px;border:1px solid #666;background:${questGroup==='zone'?'#4a4a2a':'transparent'};color:#fbbf24;cursor:pointer">By Zone</button>
+      <button class="quest-grp-btn${questGroup==='slot'?' active':''}" onclick="questGroup='slot';render()" style="font-size:0.7em;padding:3px 10px;border-radius:4px;border:1px solid #666;background:${questGroup==='slot'?'#4a4a2a':'transparent'};color:#fbbf24;cursor:pointer">By Slot</button>
+    </span>`;
   c.appendChild(phQ);
 
-  for (const qz of QUEST_ZONES) {
-    const questItems = ITEMS.filter(i => !i.dungeon && i.source.startsWith("Quest")).filter(specMatch)
-      .filter(i => qz.quests.some(q => i.source.includes(q.replace("Quest — ", ""))));
-    if (!questItems.length) continue;
-    const cc = questItems.filter(isChecked).length;
-    const allDone = cc === questItems.length;
-    const sec = document.createElement("div"); sec.className = "dungeon-section";
-    const hdr = document.createElement("div"); hdr.className = "dungeon-header";
-    hdr.innerHTML = `
-      <span>
-        <span class="quest-zone-badge">#${qz.order}</span>
-        ${qz.zone}
-        <span class="prio-reason">${qz.reason}</span>
-      </span>
-      <span class="dungeon-progress${allDone ? " done" : ""}">${cc}/${questItems.length}</span>
-    `;
-    const div = document.createElement("div"); div.className = "dungeon-items";
-    questItems.forEach(i => div.appendChild(makeItemRow(i, questItems)));
-    sec.appendChild(hdr); sec.appendChild(div); c.appendChild(sec);
+  const allQuestItems = ITEMS.filter(i => !i.dungeon && i.source.startsWith("Quest")).filter(specMatch);
+
+  if (questGroup === "slot") {
+    for (const slot of SLOT_ORDER) {
+      const items = allQuestItems.filter(i => i.slot === slot);
+      if (!items.length) continue;
+      const cc = items.filter(isChecked).length;
+      const allDone = cc === items.length;
+      const sec = document.createElement("div"); sec.className = "dungeon-section";
+      const hdr = document.createElement("div"); hdr.className = "dungeon-header";
+      hdr.innerHTML = `<span>${slot}</span><span class="dungeon-progress${allDone ? " done" : ""}">${cc}/${items.length}</span>`;
+      const div = document.createElement("div"); div.className = "dungeon-items";
+      items.forEach(i => div.appendChild(makeItemRow(i, items)));
+      sec.appendChild(hdr); sec.appendChild(div); c.appendChild(sec);
+    }
+  } else {
+    for (const qz of QUEST_ZONES) {
+      const questItems = allQuestItems
+        .filter(i => qz.quests.some(q => i.source.includes(q.replace("Quest — ", ""))));
+      if (!questItems.length) continue;
+      const cc = questItems.filter(isChecked).length;
+      const allDone = cc === questItems.length;
+      const sec = document.createElement("div"); sec.className = "dungeon-section";
+      const hdr = document.createElement("div"); hdr.className = "dungeon-header";
+      hdr.innerHTML = `
+        <span>
+          <span class="quest-zone-badge">#${qz.order}</span>
+          ${qz.zone}
+          <span class="prio-reason">${qz.reason}</span>
+        </span>
+        <span class="dungeon-progress${allDone ? " done" : ""}">${cc}/${questItems.length}</span>
+      `;
+      const div = document.createElement("div"); div.className = "dungeon-items";
+      questItems.forEach(i => div.appendChild(makeItemRow(i, questItems)));
+      sec.appendChild(hdr); sec.appendChild(div); c.appendChild(sec);
+    }
   }
 
   // Crafted, Rep, Badges — grouped by category
