@@ -5,7 +5,6 @@ class Box(IntEnum):
     GCD = 0
     MANGLE_DEBUFF = 1
     ENERGY = 2
-    MANA_SHIFT = 3
 
 
 # Screen coordinates for each box (top-left corner, left to right, 15x15 boxes)
@@ -13,14 +12,14 @@ BOX_POS = {
     Box.GCD:            (8, 8),
     Box.MANGLE_DEBUFF:  (23, 8),
     Box.ENERGY:         (38, 8),
-    Box.MANA_SHIFT:     (53, 8),
 }
 
 # Grab region covering all boxes (single row, 1px tall)
 _xs = [p[0] for p in BOX_POS.values()]
+_ys = [p[1] for p in BOX_POS.values()]
 STRIP = {
     "left": min(_xs),
-    "top": 15,
+    "top": min(_ys),
     "width": max(_xs) - min(_xs) + 1,
     "height": 1,
 }

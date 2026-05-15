@@ -101,8 +101,8 @@ def decide(colors: dict[Box, Color]) -> str | None:
     if energy == Color.GREEN:
         return "shred"
 
-    # Powershift when energy < 22 (BLACK) and enough mana
-    if energy == Color.BLACK and colors[Box.MANA_SHIFT] == Color.GREEN:
+    # Powershift when energy < 22 (BLACK)
+    if energy == Color.BLACK:
         return "powershift"
 
     # YELLOW (40-41) or RED (22-39) = wait one tick
