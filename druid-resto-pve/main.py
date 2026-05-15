@@ -189,8 +189,8 @@ def main():
                 print(f"[LB {lb.value}]")
                 last_log["lifebloom"] = lb.value
 
-            # Rejuv: cast on BLACK (missing), blocked if lifebloom is RED or YELLOW (GCD protection)
-            if BOXES["rejuv"].get("enabled", True) and lb not in (Color.RED, Color.YELLOW) and rj == Color.BLACK and now - last_press["rejuv"] >= REPRESS_INTERVAL:
+            # Rejuv: cast on BLACK (missing), blocked if lifebloom is RED (GCD protection)
+            if BOXES["rejuv"].get("enabled", True) and lb != Color.RED and rj == Color.BLACK and now - last_press["rejuv"] >= REPRESS_INTERVAL:
                 pydirectinput.press(BOXES["rejuv"]["key"])
                 last_press["rejuv"] = now
                 if last_log["rejuv"] != "CAST":
