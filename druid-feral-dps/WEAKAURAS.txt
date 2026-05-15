@@ -1,0 +1,46 @@
+FERAL DRUID DPS — WeakAura Boxes Setup
+=======================================
+
+All WAs are 1x1 pixel color boxes. Region type: Texture, solid color.
+Anchor: top-right of screen. y=15 for all boxes.
+Order right-to-left: GCD -> ENERGY -> MANGLE_DEBUFF -> MANA_SHIFT
+
+All boxes use 3 triggers:
+  1. The actual trigger (GCD / energy / debuff / mana)
+  2. Cat Form (Stance/Form = 3)
+  3. Always True (Conditions > Always True)
+Activation: Custom Function:
+  function(triggers) return triggers[2] and (triggers[1] or triggers[3]) end
+
+
+BOX 1: GCD (x offset = -15 from right)
+---------------------------------------
+- Trigger 1: Global Cooldown > Show On Cooldown
+- Conditions:
+    trigger 1 showing (GCD active)    -> BLACK (0,0,0)
+    trigger 1 not showing (GCD ready) -> GREEN (0,255,0)
+
+
+BOX 2: ENERGY (x offset = -50 from right)
+------------------------------------------
+- Trigger 1: Power > Energy > player (use_alwaystrue = true)
+- Conditions (order matters, highest first):
+    power >= 40  -> GREEN (0,255,0)    — can Mangle or Rake
+    power >= 35  -> YELLOW (255,255,0) — can Rake only
+    power >= 15  -> RED (255,0,0)      — wait one tick
+    power < 15   -> BLACK (0,0,0)      — powershift
+
+
+BOX 3: MANGLE_DEBUFF (x offset = -85 from right)
+--------------------------------------------------
+- Trigger 1: Aura > Debuff > Mangle (Cat) on target
+- Conditions:
+    trigger 1 showing (debuff UP)      -> GREEN (0,255,0)
+    trigger 1 not showing (debuff OFF) -> BLACK (0,0,0)
+
+
+BOX 4: MANA_SHIFT (x offset = -120 from right)
+------------------------------------------------
+- Trigger 1: Power > Mana > player > power >= (2x Cat Form mana cost)
+- GREEN (0,255,0) = enough mana to powershift
+- BLACK/hidden = not enough mana
