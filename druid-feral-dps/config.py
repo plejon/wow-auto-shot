@@ -8,13 +8,12 @@ class Box(IntEnum):
     MANA_SHIFT = 3
 
 
-# Screen coordinates for each box (top-right corner, growing left, y=15)
-# Order right-to-left: GCD -> ENERGY -> MANGLE_DEBUFF -> MANA_SHIFT
+# Screen coordinates for each box (top-left corner, left to right, 15x15 boxes)
 BOX_POS = {
-    Box.GCD:            (1905, 15),
-    Box.ENERGY:         (1870, 15),
-    Box.MANGLE_DEBUFF:  (1835, 15),
-    Box.MANA_SHIFT:     (1800, 15),
+    Box.GCD:            (8, 8),
+    Box.MANGLE_DEBUFF:  (23, 8),
+    Box.ENERGY:         (38, 8),
+    Box.MANA_SHIFT:     (53, 8),
 }
 
 # Grab region covering all boxes (single row, 1px tall)
