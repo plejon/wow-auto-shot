@@ -7,11 +7,11 @@ class Box(IntEnum):
     ENERGY = 2
 
 
-# Screen coordinates for each box (top-left corner, left to right, 15x15 boxes)
+# Screen coordinates for each box center (top-left corner, left to right, 15x15 boxes)
 BOX_POS = {
-    Box.GCD:            (8, 8),
-    Box.MANGLE_DEBUFF:  (23, 8),
-    Box.ENERGY:         (38, 8),
+    Box.GCD:            (15, 15),
+    Box.ENERGY:         (45, 15),
+    Box.MANGLE_DEBUFF:  (75, 15),
 }
 
 # Grab region covering all boxes (single row, 1px tall)
