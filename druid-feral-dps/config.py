@@ -32,9 +32,9 @@ OFF_MAX = 100
 
 # Key bindings
 KEYS = {
-    "mangle": "2",
-    "rake": "3",
-    "powershift": "4",
+    "mangle": "1",
+    "shred": "2",
+    "powershift": "f12",
 }
 
 # Timing

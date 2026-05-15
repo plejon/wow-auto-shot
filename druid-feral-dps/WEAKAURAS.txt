@@ -24,11 +24,11 @@ BOX 1: GCD (x offset = -15 from right)
 BOX 2: ENERGY (x offset = -50 from right)
 ------------------------------------------
 - Trigger 1: Power > Energy > player (use_alwaystrue = true)
-- Conditions (order matters, highest first):
-    power >= 40  -> GREEN (0,255,0)    — can Mangle or Rake
-    power >= 35  -> YELLOW (255,255,0) — can Rake only
-    power >= 15  -> RED (255,0,0)      — wait one tick
-    power < 15   -> BLACK (0,0,0)      — powershift
+- Conditions (lowest threshold first, last match wins):
+    power >= 22  -> RED (255,0,0)      — wait one tick
+    power >= 40  -> YELLOW (255,255,0) — can Mangle only
+    power >= 42  -> GREEN (0,255,0)    — can Shred or Mangle
+    default color = BLACK (0,0,0)      — powershift (< 22)
 
 
 BOX 3: MANGLE_DEBUFF (x offset = -85 from right)

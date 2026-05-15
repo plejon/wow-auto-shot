@@ -3,8 +3,8 @@ WoW Feral Druid DPS — Mangle + Rake rotation with powershifting.
 
 Reads 4 WeakAura color boxes via screen capture and presses the correct key:
   - Mangle when debuff is missing on target (40 energy)
-  - Rake as filler (35 energy)
-  - Powershift when energy < 15 and enough mana
+  - Shred as filler (42 energy)
+  - Powershift when energy < 22 and enough mana
   - Wait otherwise
 
 Requirements: pip install mss pydirectinput pystray Pillow keyboard
@@ -93,19 +93,19 @@ def decide(colors: dict[Box, Color]) -> str | None:
     mangle_missing = colors[Box.MANGLE_DEBUFF] != Color.GREEN
     energy = colors[Box.ENERGY]
 
-    # Mangle debuff missing + enough energy (>= 40 = GREEN)
-    if mangle_missing and energy == Color.GREEN:
+    # Mangle debuff missing + enough energy (>= 40 = YELLOW or GREEN)
+    if mangle_missing and energy in (Color.YELLOW, Color.GREEN):
         return "mangle"
 
-    # Rake as filler (>= 35 = YELLOW or GREEN)
-    if energy in (Color.YELLOW, Color.GREEN):
-        return "rake"
+    # Shred (>= 42 = GREEN)
+    if energy == Color.GREEN:
+        return "shred"
 
-    # Powershift when energy < 15 (BLACK) and enough mana
+    # Powershift when energy < 22 (BLACK) and enough mana
     if energy == Color.BLACK and colors[Box.MANA_SHIFT] == Color.GREEN:
         return "powershift"
 
-    # RED (15-34) = wait one tick
+    # YELLOW (40-41) or RED (22-39) = wait one tick
     return None
 
 
