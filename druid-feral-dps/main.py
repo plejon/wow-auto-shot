@@ -221,6 +221,7 @@ def main():
     sct = mss.mss()
     executor = Executor()
     print("Loop started — hold key to activate, F8 calibrate, F7 quit")
+    last_hold = False
 
     try:
         while state["running"]:
@@ -228,7 +229,14 @@ def main():
                 calibrate(sct, state)
                 continue
 
-            if not keyboard.is_pressed(HOLD_KEY):
+            held = keyboard.is_pressed(HOLD_KEY)
+            if held and not last_hold:
+                print(f"[DEBUG] {HOLD_KEY} pressed")
+            if not held and last_hold:
+                print(f"[DEBUG] {HOLD_KEY} released")
+            last_hold = held
+
+            if not held:
                 time.sleep(0.05)
                 continue
 
