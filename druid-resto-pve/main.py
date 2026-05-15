@@ -190,7 +190,6 @@ def main():
                 last_log["lifebloom"] = lb.value
 
             # Rejuv: cast on BLACK (missing), blocked if lifebloom is RED (GCD protection)
-            print(f"\r[DEBUG] lb={lb.value} rj={rj.value}", end="", flush=True)
             if BOXES["rejuv"].get("enabled", True) and lb != Color.RED and rj == Color.BLACK and now - last_press["rejuv"] >= REPRESS_INTERVAL:
                 pydirectinput.press(BOXES["rejuv"]["key"])
                 last_press["rejuv"] = now
