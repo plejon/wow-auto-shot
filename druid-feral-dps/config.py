@@ -6,6 +6,10 @@ class Box(IntEnum):
     MANGLE_DEBUFF = 1
     ENERGY = 2
     CLEARCAST = 3
+    COMBO_POINTS = 4
+    FINISHER = 5
+    FAERIE_FIRE = 6
+    FINISH_ENERGY = 7
 
 
 # Screen coordinates for each box center (top-left corner, left to right, 15x15 boxes)
@@ -14,6 +18,10 @@ BOX_POS = {
     Box.ENERGY:         (45, 15),
     Box.MANGLE_DEBUFF:  (75, 15),
     Box.CLEARCAST:      (105, 15),
+    Box.COMBO_POINTS:   (140, 15),
+    Box.FINISHER:       (175, 15),
+    Box.FAERIE_FIRE:    (205, 15),
+    Box.FINISH_ENERGY:  (235, 15),
 }
 
 # Grab region covering all boxes (single row, 1px tall)
@@ -34,6 +42,9 @@ OFF_MAX = 100
 KEYS = {
     "mangle": "1",
     "shred": "2",
+    "rip": "3",
+    "bite": "4",
+    "ff": "e",
     "powershift": "f12",
 }
 

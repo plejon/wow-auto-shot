@@ -93,10 +93,26 @@ def decide(colors: dict[Box, Color]) -> str | None:
     mangle_missing = colors[Box.MANGLE_DEBUFF] != Color.GREEN
     energy = colors[Box.ENERGY]
     clearcast = colors[Box.CLEARCAST] == Color.GREEN
+    five_cp = colors[Box.COMBO_POINTS] == Color.GREEN
+    target_low = colors[Box.FINISHER] == Color.RED
+    ff_ready = colors[Box.FAERIE_FIRE] == Color.GREEN
+    finish_energy = colors[Box.FINISH_ENERGY]
+
+    # 5 combo points -> finisher (if enough energy)
+    if five_cp:
+        if target_low and finish_energy == Color.GREEN:
+            return "bite"       # >= 35 energy
+        if finish_energy in (Color.GREEN, Color.YELLOW):
+            return "rip"        # >= 30 energy
+        return None             # wait for energy
 
     # Clearcasting proc -> always Shred (free, highest damage)
     if clearcast:
         return "shred"
+
+    # Faerie Fire missing + off CD + target not low HP
+    if ff_ready and not target_low:
+        return "ff"
 
     # Mangle debuff missing + enough energy (>= 40 = YELLOW or GREEN)
     if mangle_missing and energy in (Color.YELLOW, Color.GREEN):
