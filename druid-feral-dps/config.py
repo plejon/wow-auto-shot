@@ -10,6 +10,7 @@ class Box(IntEnum):
     FINISHER = 5
     FAERIE_FIRE = 6
     FINISH_ENERGY = 7
+    AUTO_ATTACK = 8
 
 
 # Screen coordinates for each box center (top-left corner, left to right, 15x15 boxes)
@@ -22,6 +23,7 @@ BOX_POS = {
     Box.FINISHER:       (175, 15),
     Box.FAERIE_FIRE:    (205, 15),
     Box.FINISH_ENERGY:  (235, 15),
+    Box.AUTO_ATTACK:    (265, 15),
 }
 
 # Grab region covering all boxes (single row, 1px tall)
@@ -45,6 +47,7 @@ KEYS = {
     "rip": "3",
     "bite": "4",
     "ff": "e",
+    "startattack": "f11",
     "powershift": "f12",
 }
 

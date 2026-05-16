@@ -86,6 +86,10 @@ def read_boxes_rgb(sct: mss.mss) -> dict[Box, tuple[int, int, int]]:
 # Decider — pure function, returns action string or None
 # ------------------------------------------------------------------
 def decide(colors: dict[Box, Color]) -> str | None:
+    # Start Attack doesn't use GCD — press whenever not attacking
+    if colors[Box.AUTO_ATTACK] == Color.RED:
+        return "startattack"
+
     gcd_ready = colors[Box.GCD] == Color.GREEN
     if not gcd_ready:
         return None
