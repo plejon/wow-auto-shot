@@ -100,8 +100,10 @@ def decide(colors: dict[Box, Color]) -> str | None:
 
     # 5 combo points -> finisher (if enough energy)
     if five_cp:
-        if target_low and finish_energy == Color.GREEN:
-            return "bite"       # >= 35 energy
+        if target_low:
+            if finish_energy == Color.GREEN:
+                return "bite"   # >= 35 energy
+            return None         # wait for energy
         if finish_energy in (Color.GREEN, Color.YELLOW):
             return "rip"        # >= 30 energy
         return None             # wait for energy
