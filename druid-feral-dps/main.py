@@ -11,6 +11,7 @@ Requirements: pip install mss pydirectinput pystray Pillow keyboard
 """
 
 import mss
+import sys
 import time
 import threading
 from enum import Enum
@@ -85,7 +86,7 @@ def read_boxes_rgb(sct: mss.mss) -> dict[Box, tuple[int, int, int]]:
 # ------------------------------------------------------------------
 # Decider — pure function, returns action string or None
 # ------------------------------------------------------------------
-def decide(colors: dict[Box, Color]) -> str | None:
+def decide(colors: dict[Box, Color], solo: bool = False) -> str | None:
     # Start Attack doesn't use GCD — press whenever not attacking
     if colors[Box.AUTO_ATTACK] == Color.RED:
         return "startattack"
@@ -112,24 +113,24 @@ def decide(colors: dict[Box, Color]) -> str | None:
             return "rip"        # >= 30 energy
         return None             # wait for energy
 
-    # Clearcasting proc -> always Shred (free, highest damage)
+    # Clearcasting proc -> Shred (free, highest damage), Mangle in solo
     if clearcast:
-        return "shred"
+        return "mangle" if solo else "shred"
 
     # Faerie Fire missing + off CD + target not low HP
-    if ff_ready and not target_low:
+    if not solo and ff_ready and not target_low:
         return "ff"
 
     # Mangle debuff missing + enough energy (>= 40 = YELLOW or GREEN)
     if mangle_missing and energy in (Color.YELLOW, Color.GREEN):
         return "mangle"
 
-    # Shred (>= 42 = GREEN)
-    if energy == Color.GREEN:
+    # Shred (>= 42 = GREEN) — skip in solo
+    if not solo and energy == Color.GREEN:
         return "shred"
 
-    # Powershift when energy < 22 (BLACK)
-    if energy == Color.BLACK:
+    # Powershift when energy < 22 (BLACK) — skip in solo
+    if not solo and energy == Color.BLACK:
         return "powershift"
 
     # YELLOW (40-41) or RED (22-39) = wait one tick
@@ -225,10 +226,12 @@ def start_hotkeys(state: dict):
 # ------------------------------------------------------------------
 def main():
     pydirectinput.PAUSE = 0
+    solo = "solo" in sys.argv[1:]
     state = {"running": True, "calibrating": False}
 
+    mode = "SOLO" if solo else "GROUP"
     print("=" * 50)
-    print("  Feral Druid DPS — Mangle + Rake")
+    print(f"  Feral Druid DPS — {mode} mode")
     print("=" * 50)
     for box in Box:
         sx, sy = BOX_POS[box]
@@ -269,7 +272,7 @@ def main():
 
             # Read -> Decide -> Execute
             colors = read_boxes(sct)
-            action = decide(colors)
+            action = decide(colors, solo=solo)
             executor.execute(action, colors)
 
             time.sleep(POLL_RATE)
