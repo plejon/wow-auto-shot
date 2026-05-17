@@ -92,8 +92,8 @@ def decide(colors: dict[Box, Color], use_ff: bool = True) -> tuple[str | None, l
     gcd_action = None
     off_gcd_actions = []
 
-    # Start Attack — off-GCD, press whenever not attacking
-    if colors[Box.AUTO_ATTACK] == Color.RED:
+    # Start Attack — off-GCD, press whenever not attacking (BLACK = not attacking)
+    if colors[Box.AUTO_ATTACK] == Color.BLACK:
         off_gcd_actions.append("startattack")
 
     # Maul — off-GCD, queue when rage >= 50 and not already queued
@@ -128,7 +128,7 @@ def decide(colors: dict[Box, Color], use_ff: bool = True) -> tuple[str | None, l
             gcd_action = "lacerate"
             return gcd_action, off_gcd_actions
 
-    return gcd_action, off_gcd_action
+    return gcd_action, off_gcd_actions
 
 
 # ------------------------------------------------------------------
@@ -149,8 +149,9 @@ class Executor:
 
         # Off-GCD actions — press each independently with repress interval
         for action in off_gcd_actions:
+            interval = 2.0 if action == "maul" else REPRESS_INTERVAL
             last = self.last_off_gcd_press.get(action, 0)
-            if now - last >= REPRESS_INTERVAL:
+            if now - last >= interval:
                 pydirectinput.press(KEYS[action])
                 self.last_off_gcd_press[action] = now
                 print(f"[off-gcd] {action} -> press {KEYS[action]}")
