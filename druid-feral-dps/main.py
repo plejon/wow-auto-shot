@@ -118,11 +118,11 @@ def decide(colors: dict[Box, Color], solo: bool = False) -> str | None:
         return "mangle" if solo else "shred"
 
     # Faerie Fire missing + off CD + target not low HP
-    if not solo and ff_ready and not target_low:
+    if ff_ready and not target_low:
         return "ff"
 
-    # Mangle debuff missing + enough energy (>= 40 = YELLOW or GREEN)
-    if mangle_missing and energy in (Color.YELLOW, Color.GREEN):
+    # Mangle — solo: spam as main filler, group: only when debuff missing
+    if (solo or mangle_missing) and energy in (Color.YELLOW, Color.GREEN):
         return "mangle"
 
     # Shred (>= 42 = GREEN) — skip in solo
@@ -250,7 +250,7 @@ def main():
 
     sct = mss.mss()
     executor = Executor()
-    print("Loop started — hold key to activate, F8 calibrate, F7 quit")
+    print(f"Loop started — hold key to activate, {CALIBRATE_KEY} calibrate, {QUIT_KEY} quit")
     last_hold = False
 
     try:
