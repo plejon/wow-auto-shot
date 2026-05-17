@@ -122,10 +122,11 @@ def decide(colors: dict[Box, Color], use_ff: bool = True) -> tuple[str | None, l
         gcd_action = "ff"
         return gcd_action, off_gcd_actions
 
-    # Lacerate — anything except GREEN (5 stacks > 5s) = apply/refresh
+    # Lacerate — anything except GREEN (5 stacks > 5s) = apply/refresh (needs 13+ rage or clearcast)
     if lacerate != Color.GREEN:
-        gcd_action = "lacerate"
-        return gcd_action, off_gcd_actions
+        if clearcast or rage in (Color.RED, Color.YELLOW, Color.GREEN):
+            gcd_action = "lacerate"
+            return gcd_action, off_gcd_actions
 
     return gcd_action, off_gcd_actions
 
