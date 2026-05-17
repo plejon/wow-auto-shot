@@ -43,7 +43,7 @@ KEYS = {
     "mangle": "1",
     "lacerate": "2",
     "maul": "4",
-    "ff": "f6",
+    "ff": "e",
     "startattack": "f12",
 }
 
