@@ -1,16 +1,20 @@
-WoW Macros — shared keybinds for Cat/Bear feral druid bot
-==========================================================
+WoW Macros — shared keybinds for Druid (Cat/Bear/Resto)
+========================================================
 
 Bind these macros to F6-F12 on your action bar.
-Both cat and bear scripts use the same keys.
+Cat, bear, and resto scripts share the same keys.
 
-F6 — Mangle (cat) / Mangle (bear)
+F6 — Mangle (cat) / Mangle (bear) / Lifebloom (resto)
 /cast [stance:1] Mangle (Bear)
 /cast [stance:3] Mangle (Cat)
+/cast [stance:5] Lifebloom
+/cast [nostance] Lifebloom
 
-F7 — Rip (cat) / Lacerate (bear)
+F7 — Rip (cat) / Lacerate (bear) / Rejuvenation (resto)
 /cast [stance:1] Lacerate
 /cast [stance:3] Rip
+/cast [stance:5] Rejuvenation
+/cast [nostance] Rejuvenation
 
 F8 — Ferocious Bite (cat) / Maul (bear)
 /cast [stance:1] Maul

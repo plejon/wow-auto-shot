@@ -21,8 +21,8 @@ import keyboard
 # Config
 # ------------------------------------------------------------------
 BOXES = {
-    "lifebloom": {"x": 15, "y": 15, "key": "0"},
-    "rejuv":     {"x": 45, "y": 15, "key": "9", "enabled": True},
+    "lifebloom": {"x": 15, "y": 15, "key": "f6"},
+    "rejuv":     {"x": 45, "y": 15, "key": "f7", "enabled": True},
 }
 
 HOLD_KEY = "caps lock"      # hold to enable
