@@ -86,7 +86,7 @@ def read_boxes_rgb(sct: mss.mss) -> dict[Box, tuple[int, int, int]]:
 # ------------------------------------------------------------------
 # Decider — pure function, returns action string or None
 # ------------------------------------------------------------------
-def decide(colors: dict[Box, Color], solo: bool = False) -> str | None:
+def decide(colors: dict[Box, Color], solo: bool = False, use_ff: bool = True) -> str | None:
     # Start Attack doesn't use GCD — press whenever not attacking
     if colors[Box.AUTO_ATTACK] == Color.RED:
         return "startattack"
@@ -118,7 +118,7 @@ def decide(colors: dict[Box, Color], solo: bool = False) -> str | None:
         return "mangle" if solo else "shred"
 
     # Faerie Fire missing + off CD + target not low HP
-    if ff_ready and not target_low:
+    if use_ff and ff_ready and not target_low:
         return "ff"
 
     # Mangle — solo: spam when energy >= 80, group: only when debuff missing
@@ -229,6 +229,7 @@ def start_hotkeys(state: dict):
 def main():
     pydirectinput.PAUSE = 0
     solo = "solo" in sys.argv[1:]
+    use_ff = "noff" not in sys.argv[1:]
     state = {"running": True, "calibrating": False}
 
     mode = "SOLO" if solo else "GROUP"
@@ -274,7 +275,7 @@ def main():
 
             # Read -> Decide -> Execute
             colors = read_boxes(sct)
-            action = decide(colors, solo=solo)
+            action = decide(colors, solo=solo, use_ff=use_ff)
             executor.execute(action, colors)
 
             time.sleep(POLL_RATE)
