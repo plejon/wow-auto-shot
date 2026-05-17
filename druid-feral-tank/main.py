@@ -122,15 +122,10 @@ def decide(colors: dict[Box, Color], use_ff: bool = True) -> tuple[str | None, l
         gcd_action = "ff"
         return gcd_action, off_gcd_actions
 
-    # Lacerate — RED (5 stacks, needs refresh) or YELLOW (< 5 stacks) or BLACK (not on target)
+    # Lacerate — anything except GREEN (5 stacks > 5s) = apply/refresh
     if lacerate != Color.GREEN:
-        if clearcast or rage in (Color.YELLOW, Color.GREEN, Color.RED):
-            gcd_action = "lacerate"
-            return gcd_action, off_gcd_actions
-        else:
-            print(f"[DEBUG] lacerate={lacerate.value} but rage={rage.value} too low")
-    else:
-        print(f"[DEBUG] lacerate=GREEN (5 stacks, skip)")
+        gcd_action = "lacerate"
+        return gcd_action, off_gcd_actions
 
     return gcd_action, off_gcd_actions
 
