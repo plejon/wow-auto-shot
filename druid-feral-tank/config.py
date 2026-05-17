@@ -46,6 +46,7 @@ KEYS = {
     "ff": "f9",
     "startattack": "f12",
 }
+# Shared keys with cat: F6=mangle, F7=lacerate/rip, F8=maul/bite, F9=ff, F12=attack
 
 # Timing
 POLL_RATE = 0.008

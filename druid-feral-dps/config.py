@@ -44,14 +44,15 @@ OFF_MAX = 100
 
 # Key bindings
 KEYS = {
-    "ff": "f6",
+    "mangle": "f6",
     "rip": "f7",
     "bite": "f8",
-    "mangle": "f9",
+    "ff": "f9",
     "shred": "f10",
     "powershift": "f11",
     "startattack": "f12",
 }
+# Shared keys with bear: F6=mangle, F7=rip/lacerate, F8=bite/maul, F9=ff, F12=attack
 
 # Timing
 POLL_RATE = 0.008

@@ -1,0 +1,29 @@
+WoW Macros — shared keybinds for Cat/Bear feral druid bot
+==========================================================
+
+Bind these macros to F6-F12 on your action bar.
+Both cat and bear scripts use the same keys.
+
+F6 — Mangle (cat) / Mangle (bear)
+/cast [stance:1] Mangle (Bear)
+/cast [stance:3] Mangle (Cat)
+
+F7 — Rip (cat) / Lacerate (bear)
+/cast [stance:1] Lacerate
+/cast [stance:3] Rip
+
+F8 — Ferocious Bite (cat) / Maul (bear)
+/cast [stance:1] Maul
+/cast [stance:3] Ferocious Bite
+
+F9 — Faerie Fire (Feral)
+/cast Faerie Fire (Feral)
+
+F10 — Shred (cat only)
+/cast [stance:3] Shred
+
+F11 — Powershift (cat only)
+/cast [stance:3] Cat Form
+
+F12 — Start Attack
+/startattack
