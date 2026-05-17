@@ -42,13 +42,13 @@ OFF_MAX = 100
 
 # Key bindings
 KEYS = {
-    "mangle": "1",
-    "shred": "2",
-    "rip": "3",
-    "bite": "4",
-    "ff": "e",
-    "startattack": "f11",
-    "powershift": "f12",
+    "ff": "f6",
+    "rip": "f7",
+    "bite": "f8",
+    "mangle": "f9",
+    "shred": "f10",
+    "powershift": "f11",
+    "startattack": "f12",
 }
 
 # Timing
@@ -57,6 +57,6 @@ DEBOUNCE_FRAMES = 2
 REPRESS_INTERVAL = 0.5
 
 # Hotkeys
-QUIT_KEY = "f7"
-CALIBRATE_KEY = "f8"
+QUIT_KEY = "f3"
+CALIBRATE_KEY = "f4"
 HOLD_KEY = "caps lock"
