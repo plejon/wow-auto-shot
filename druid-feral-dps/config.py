@@ -17,8 +17,8 @@ class Box(IntEnum):
 BOX_POS = {
     Box.GCD:            (15, 15),
     Box.ENERGY:         (45, 15),
-    Box.MANGLE_DEBUFF:  (75, 15),
-    Box.CLEARCAST:      (105, 15),
+    Box.MANGLE_DEBUFF:  (80, 15),
+    Box.CLEARCAST:      (110, 15),
     Box.COMBO_POINTS:   (140, 15),
     Box.FINISHER:       (175, 15),
     Box.FAERIE_FIRE:    (205, 15),
