@@ -40,10 +40,10 @@ OFF_MAX = 100
 
 # Key bindings
 KEYS = {
+    "mangle": "1",
+    "lacerate": "2",
+    "maul": "4",
     "ff": "f6",
-    "lacerate": "f7",
-    "maul": "f8",
-    "mangle": "f9",
     "startattack": "f12",
 }
 

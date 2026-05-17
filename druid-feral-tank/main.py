@@ -146,16 +146,7 @@ class Executor:
     def execute(self, gcd_action: str | None, off_gcd_actions: list[str], colors: dict[Box, Color]):
         now = time.time()
 
-        # Off-GCD actions — press each independently with repress interval
-        for action in off_gcd_actions:
-            interval = 2.0 if action == "maul" else REPRESS_INTERVAL
-            last = self.last_off_gcd_press.get(action, 0)
-            if now - last >= interval:
-                pydirectinput.press(KEYS[action])
-                self.last_off_gcd_press[action] = now
-                print(f"[off-gcd] {action} -> press {KEYS[action]}")
-
-        # GCD actions — debounce
+        # GCD actions — debounce (press FIRST, before off-GCD)
         if gcd_action == self.pending_action:
             self.debounce_count += 1
         else:
@@ -180,6 +171,15 @@ class Executor:
         if gcd_action and now - self.last_press >= REPRESS_INTERVAL:
             pydirectinput.press(KEYS[gcd_action])
             self.last_press = now
+
+        # Off-GCD actions — press after GCD action
+        for action in off_gcd_actions:
+            interval = 2.0 if action in ("maul", "startattack") else REPRESS_INTERVAL
+            last = self.last_off_gcd_press.get(action, 0)
+            if now - last >= interval:
+                pydirectinput.press(KEYS[action])
+                self.last_off_gcd_press[action] = now
+                print(f"[off-gcd] {action} -> press {KEYS[action]}")
 
 
 # ------------------------------------------------------------------
