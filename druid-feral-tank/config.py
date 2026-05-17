@@ -40,13 +40,12 @@ OFF_MAX = 100
 
 # Key bindings
 KEYS = {
-    "mangle": "f6",
+    "ff": "f6",
     "lacerate": "f7",
     "maul": "f8",
-    "ff": "f9",
+    "mangle": "f9",
     "startattack": "f12",
 }
-# Shared keys with cat: F6=mangle, F7=lacerate/rip, F8=maul/bite, F9=ff, F12=attack
 
 # Timing
 POLL_RATE = 0.008
