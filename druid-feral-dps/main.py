@@ -121,8 +121,10 @@ def decide(colors: dict[Box, Color], solo: bool = False) -> str | None:
     if ff_ready and not target_low:
         return "ff"
 
-    # Mangle — solo: spam as main filler, group: only when debuff missing
-    if (solo or mangle_missing) and energy in (Color.YELLOW, Color.GREEN):
+    # Mangle — solo: spam when energy >= 80, group: only when debuff missing
+    if solo and colors[Box.SOLO_ENERGY] == Color.GREEN:
+        return "mangle"
+    if not solo and mangle_missing and energy in (Color.YELLOW, Color.GREEN):
         return "mangle"
 
     # Shred (>= 42 = GREEN) — skip in solo

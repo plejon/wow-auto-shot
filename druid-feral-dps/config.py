@@ -11,6 +11,7 @@ class Box(IntEnum):
     FAERIE_FIRE = 6
     FINISH_ENERGY = 7
     AUTO_ATTACK = 8
+    SOLO_ENERGY = 9
 
 
 # Screen coordinates for each box center (top-left corner, left to right, 15x15 boxes)
@@ -24,6 +25,7 @@ BOX_POS = {
     Box.FAERIE_FIRE:    (205, 15),
     Box.FINISH_ENERGY:  (235, 15),
     Box.AUTO_ATTACK:    (265, 15),
+    Box.SOLO_ENERGY:    (300, 15),
 }
 
 # Grab region covering all boxes (single row, 1px tall)
