@@ -44,10 +44,10 @@ OFF_MAX = 100
 
 # Key bindings
 KEYS = {
-    "mangle": "f6",
+    "ff": "f6",
     "rip": "f7",
     "bite": "f8",
-    "ff": "f9",
+    "mangle": "f9",
     "shred": "f10",
     "powershift": "f11",
     "startattack": "f12",
