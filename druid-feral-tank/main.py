@@ -87,25 +87,25 @@ def read_boxes_rgb(sct: mss.mss) -> dict[Box, tuple[int, int, int]]:
 # ------------------------------------------------------------------
 # Decider — pure function, returns action string or None
 # ------------------------------------------------------------------
-def decide(colors: dict[Box, Color], use_ff: bool = True) -> tuple[str | None, str | None]:
-    """Returns (gcd_action, off_gcd_action) — both can fire independently."""
+def decide(colors: dict[Box, Color], use_ff: bool = True) -> tuple[str | None, list[str]]:
+    """Returns (gcd_action, off_gcd_actions) — off-GCD actions fire independently."""
     gcd_action = None
-    off_gcd_action = None
+    off_gcd_actions = []
 
     # Start Attack — off-GCD, press whenever not attacking
     if colors[Box.AUTO_ATTACK] == Color.RED:
-        off_gcd_action = "startattack"
+        off_gcd_actions.append("startattack")
 
     # Maul — off-GCD, queue when rage >= 50 and not already queued
     rage = colors[Box.RAGE]
     maul_queued = colors[Box.MAUL] == Color.GREEN
     if rage == Color.GREEN and not maul_queued:
-        off_gcd_action = "maul"
+        off_gcd_actions.append("maul")
 
     # GCD actions
     gcd_ready = colors[Box.GCD] == Color.GREEN
     if not gcd_ready:
-        return gcd_action, off_gcd_action
+        return gcd_action, off_gcd_actions
 
     mangle_ready = colors[Box.MANGLE_CD] == Color.GREEN
     clearcast = colors[Box.CLEARCAST] == Color.GREEN
@@ -115,18 +115,18 @@ def decide(colors: dict[Box, Color], use_ff: bool = True) -> tuple[str | None, s
     # Mangle on CD — top priority (free with clearcast, or rage >= 15)
     if mangle_ready and (clearcast or rage in (Color.YELLOW, Color.GREEN)):
         gcd_action = "mangle"
-        return gcd_action, off_gcd_action
+        return gcd_action, off_gcd_actions
 
     # Faerie Fire missing + off CD
     if use_ff and ff_ready:
         gcd_action = "ff"
-        return gcd_action, off_gcd_action
+        return gcd_action, off_gcd_actions
 
     # Lacerate — RED (5 stacks, needs refresh) or YELLOW (< 5 stacks) or BLACK (not on target)
     if lacerate in (Color.RED, Color.YELLOW, Color.BLACK):
         if clearcast or rage in (Color.YELLOW, Color.GREEN, Color.RED):
             gcd_action = "lacerate"
-            return gcd_action, off_gcd_action
+            return gcd_action, off_gcd_actions
 
     return gcd_action, off_gcd_action
 
@@ -144,16 +144,16 @@ class Executor:
         # Off-GCD tracking
         self.last_off_gcd_press: dict[str, float] = {}
 
-    def execute(self, gcd_action: str | None, off_gcd_action: str | None, colors: dict[Box, Color]):
+    def execute(self, gcd_action: str | None, off_gcd_actions: list[str], colors: dict[Box, Color]):
         now = time.time()
 
-        # Off-GCD actions — press immediately with repress interval
-        if off_gcd_action:
-            last = self.last_off_gcd_press.get(off_gcd_action, 0)
+        # Off-GCD actions — press each independently with repress interval
+        for action in off_gcd_actions:
+            last = self.last_off_gcd_press.get(action, 0)
             if now - last >= REPRESS_INTERVAL:
-                pydirectinput.press(KEYS[off_gcd_action])
-                self.last_off_gcd_press[off_gcd_action] = now
-                print(f"[off-gcd] {off_gcd_action} -> press {KEYS[off_gcd_action]}")
+                pydirectinput.press(KEYS[action])
+                self.last_off_gcd_press[action] = now
+                print(f"[off-gcd] {action} -> press {KEYS[action]}")
 
         # GCD actions — debounce
         if gcd_action == self.pending_action:
@@ -277,8 +277,8 @@ def main():
 
             # Read -> Decide -> Execute
             colors = read_boxes(sct)
-            gcd_action, off_gcd_action = decide(colors, use_ff=use_ff)
-            executor.execute(gcd_action, off_gcd_action, colors)
+            gcd_action, off_gcd_actions = decide(colors, use_ff=use_ff)
+            executor.execute(gcd_action, off_gcd_actions, colors)
 
             time.sleep(POLL_RATE)
 
